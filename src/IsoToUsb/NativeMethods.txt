@@ -1,0 +1,21 @@
+// CsWin32 input. One Win32 API per line; the source generator produces
+// strongly-typed P/Invokes under Windows.Win32.*.
+// See: https://github.com/microsoft/CsWin32
+OpenVirtualDisk
+AttachVirtualDisk
+DetachVirtualDisk
+GetVirtualDiskPhysicalPath
+GetLogicalDrives
+CloseHandle
+FindFirstVolumeW
+FindNextVolumeW
+FindVolumeClose
+GetVolumePathNamesForVolumeNameW
+GetVolumeInformationW
+DeviceIoControl
+CreateFileW
+FlushFileBuffers
+IOCTL_STORAGE_EJECT_MEDIA
+ChangeWindowMessageFilterEx
+GetOpenFileNameW
+CommDlgExtendedError

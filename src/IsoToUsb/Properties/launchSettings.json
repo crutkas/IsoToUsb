@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "IsoToUsb (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "IsoToUsb (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
