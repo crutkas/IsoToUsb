@@ -20,10 +20,25 @@ public sealed class DiskPartitioner
     public const string DefaultVolumeLabel = "WIN_USB";
 
     /// <summary>
+    /// Maximum size of the FAT32 partition we create, in MiB. The Windows
+    /// built-in FAT32 formatter refuses anything beyond 32 GiB. Capping at
+    /// 32000 MiB (~31.25 GiB) leaves a small safety margin on disks larger
+    /// than 32 GiB; the rest of the disk is left unallocated.
+    /// </summary>
+    private const uint Fat32CapMiB = 32_000;
+
+    /// <summary>
+    /// Disk sizes at or below this threshold use the entire disk for the
+    /// FAT32 partition. Above it, the partition is capped at
+    /// <see cref="Fat32CapMiB"/>.
+    /// </summary>
+    private const ulong Fat32CapTriggerBytes = (ulong)Fat32CapMiB * 1024 * 1024;
+
+    /// <summary>
     /// Repartition the target disk:
     /// 1. <c>clean</c> (wipes MBR/GPT headers and all partitions).
     /// 2. <c>convert gpt</c>.
-    /// 3. <c>create partition primary</c> (max size).
+    /// 3. <c>create partition primary</c> (capped at 32000 MiB on large disks).
     /// 4. <c>format fs=fat32 quick label=&lt;label&gt;</c>.
     /// 5. <c>assign</c> (next available drive letter).
     /// </summary>
@@ -40,7 +55,7 @@ public sealed class DiskPartitioner
                 nameof(volumeLabel));
         }
 
-        RunDiskpartScript(disk.Number, volumeLabel);
+        RunDiskpartScript(disk.Number, disk.SizeBytes, volumeLabel);
 
         var scope = new ManagementScope(StorageScope);
         scope.Connect();
@@ -49,7 +64,7 @@ public sealed class DiskPartitioner
         return $"{letter}:\\";
     }
 
-    private static void RunDiskpartScript(uint diskNumber, string label)
+    private static void RunDiskpartScript(uint diskNumber, ulong diskSizeBytes, string label)
     {
         // Notes on the script:
         //  - `attributes disk clear readonly` only matters for USBs with the
@@ -65,6 +80,13 @@ public sealed class DiskPartitioner
         //  - `format` is run BEFORE `assign` so Windows doesn't see an
         //    unformatted volume appear and pop the "format this drive?"
         //    AutoPlay dialog.
+        //  - On disks > 32 GiB, we cap the FAT32 partition at 32000 MiB
+        //    because the in-box Windows formatter refuses larger FAT32
+        //    volumes. The rest of the disk is left unallocated.
+        var createPartition = diskSizeBytes > Fat32CapTriggerBytes
+            ? $"create partition primary size={Fat32CapMiB.ToString(System.Globalization.CultureInfo.InvariantCulture)}"
+            : "create partition primary";
+
         var script = new StringBuilder()
             .AppendLine($"select disk {diskNumber.ToString(System.Globalization.CultureInfo.InvariantCulture)}")
             .AppendLine("attributes disk clear readonly noerr")
@@ -76,7 +98,7 @@ public sealed class DiskPartitioner
             // is already MBR.
             .AppendLine("convert mbr noerr")
             .AppendLine("convert gpt")
-            .AppendLine("create partition primary")
+            .AppendLine(createPartition)
             .AppendLine("select partition 1")
             .AppendLine($"format fs=fat32 quick label=\"{label}\"")
             .AppendLine("assign")
@@ -106,15 +128,31 @@ public sealed class DiskPartitioner
             using var proc = Process.Start(psi)
                 ?? throw new InvalidOperationException("Failed to start diskpart.exe.");
 
-            var stdout = proc.StandardOutput.ReadToEnd();
-            var stderr = proc.StandardError.ReadToEnd();
+            // Drain stdout/stderr asynchronously so a long diskpart run
+            // can't deadlock if its output exceeds the pipe buffer
+            // (synchronous ReadToEnd before WaitForExit also blocks the
+            // 2-minute timeout from ever firing while output is pending).
+            var sb = new StringBuilder();
+            var sync = new object();
+            void Append(string? line)
+            {
+                if (line is null) return;
+                lock (sync) { sb.AppendLine(line); }
+            }
+            proc.OutputDataReceived += (_, e) => Append(e.Data);
+            proc.ErrorDataReceived += (_, e) => Append(e.Data);
+            proc.BeginOutputReadLine();
+            proc.BeginErrorReadLine();
+
             if (!proc.WaitForExit(120_000))
             {
                 try { proc.Kill(entireProcessTree: true); } catch { }
                 throw new InvalidOperationException("diskpart timed out after 2 minutes.");
             }
+            // Ensure all async output has been drained before we read sb.
+            proc.WaitForExit();
 
-            combined = (stdout + "\n" + stderr).Trim();
+            lock (sync) { combined = sb.ToString().Trim(); }
             exitCode = proc.ExitCode;
         }
         finally
@@ -122,30 +160,19 @@ public sealed class DiskPartitioner
             try { File.Delete(scriptPath); } catch { }
         }
 
-        // Diskpart's exit code is unreliable (can be non-zero even on success
-        // when 'noerr' modifiers were used). Trust the success markers
-        // diskpart prints for the critical steps instead.
-        bool cleaned = combined.Contains("DiskPart succeeded in cleaning the disk", StringComparison.OrdinalIgnoreCase);
-        bool converted = combined.Contains("DiskPart successfully converted the selected disk to GPT format", StringComparison.OrdinalIgnoreCase);
-        bool partitionMade = combined.Contains("DiskPart succeeded in creating the specified partition", StringComparison.OrdinalIgnoreCase);
-        bool formatted = combined.Contains("DiskPart successfully formatted the volume", StringComparison.OrdinalIgnoreCase);
-        bool assigned = combined.Contains("DiskPart successfully assigned the drive letter or mount point", StringComparison.OrdinalIgnoreCase);
-
-        if (cleaned && converted && partitionMade && formatted && assigned)
+        // Diskpart's success markers are localized, so we can't parse them
+        // reliably on non-English Windows installs. Instead, trust the
+        // post-condition: the caller verifies a drive letter appears on the
+        // target disk's first partition. Surface the exit code + captured
+        // output only when that post-condition fails, so the user has
+        // something to diagnose.
+        if (exitCode == 0)
         {
             return;
         }
 
-        var missing = new List<string>();
-        if (!cleaned) missing.Add("clean");
-        if (!converted) missing.Add("convert gpt");
-        if (!partitionMade) missing.Add("create partition primary");
-        if (!formatted) missing.Add("format fs=fat32");
-        if (!assigned) missing.Add("assign");
-
         throw new InvalidOperationException(
-            $"diskpart did not complete the required steps (missing: {string.Join(", ", missing)}, exit {exitCode}).\n" +
-            $"Output:\n{combined}");
+            $"diskpart exited with code {exitCode}.\nOutput:\n{combined}");
     }
 
     private static char WaitForVolumeLetter(ManagementScope scope, uint diskNumber, TimeSpan timeout)

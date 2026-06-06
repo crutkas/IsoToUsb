@@ -4,13 +4,35 @@ namespace IsoToUsb.Services;
 public sealed record CopyProgress(long BytesDone, long BytesTotal, int FilesDone, int FilesTotal, string CurrentRelativePath);
 
 /// <summary>
+/// How <see cref="FileCopier"/> (and its callers) should handle a file
+/// whose size exceeds the FAT32 4 GiB per-file limit.
+/// </summary>
+public enum Fat32FileAction
+{
+    /// <summary>File fits on FAT32 — copy as-is.</summary>
+    Copy,
+
+    /// <summary>File is too large but is a WIM/ESD that DISM can split.</summary>
+    SplitWithDism,
+
+    /// <summary>File is too large and can't be split — abort before
+    /// wiping the target.</summary>
+    Reject,
+}
+
+/// <summary>
 /// Recursively copies the contents of a source directory tree to a destination,
-/// skipping any files matched by a predicate (used to skip
-/// <c>sources\install.wim</c> when it exceeds the FAT32 4 GiB limit).
+/// skipping any files matched by a predicate (used to defer files that exceed
+/// the FAT32 4 GiB per-file limit so the pipeline can DISM-split them later).
 /// </summary>
 public sealed class FileCopier
 {
     private const int BufferSize = 1024 * 1024; // 1 MiB
+
+    /// <summary>
+    /// FAT32 maximum file size with a small safety margin.
+    /// </summary>
+    public const long Fat32MaxFileBytes = (4L * 1024 * 1024 * 1024) - 1;
 
     public Func<FileInfo, string, bool> SkipPredicate { get; init; } = static (_, _) => false;
 
@@ -76,16 +98,36 @@ public sealed class FileCopier
     }
 
     /// <summary>
-    /// Returns true when the file is <c>sources\install.wim</c> and exceeds
-    /// <paramref name="maxBytes"/> (FAT32's 4 GiB limit, with a small margin).
+    /// Classifies a file for FAT32-safe handling. Files at or below
+    /// <paramref name="maxBytes"/> are <see cref="Fat32FileAction.Copy"/>.
+    /// Larger files that are WIM/ESD/SWM (split-capable by DISM) are
+    /// <see cref="Fat32FileAction.SplitWithDism"/>; everything else is
+    /// <see cref="Fat32FileAction.Reject"/> so the pipeline aborts before
+    /// wiping the target.
     /// </summary>
-    public static bool ShouldSkipInstallWimForFat32(FileInfo file, string relativePath, long maxBytes = (4L * 1024 * 1024 * 1024) - 1)
+    public static Fat32FileAction ClassifyForFat32(FileInfo file, string relativePath, long maxBytes = Fat32MaxFileBytes)
     {
+        ArgumentNullException.ThrowIfNull(file);
+        ArgumentNullException.ThrowIfNull(relativePath);
         if (file.Length <= maxBytes)
         {
-            return false;
+            return Fat32FileAction.Copy;
         }
-        var normalized = relativePath.Replace('/', '\\');
-        return string.Equals(normalized, Path.Combine("sources", "install.wim"), StringComparison.OrdinalIgnoreCase);
+        var ext = Path.GetExtension(relativePath);
+        if (ext.Equals(".wim", StringComparison.OrdinalIgnoreCase)
+            || ext.Equals(".esd", StringComparison.OrdinalIgnoreCase)
+            || ext.Equals(".swm", StringComparison.OrdinalIgnoreCase))
+        {
+            return Fat32FileAction.SplitWithDism;
+        }
+        return Fat32FileAction.Reject;
     }
+
+    /// <summary>
+    /// Returns <c>true</c> when <see cref="ClassifyForFat32"/> says the
+    /// file should be split by DISM. Convenience predicate for
+    /// <see cref="SkipPredicate"/>.
+    /// </summary>
+    public static bool ShouldSplitForFat32(FileInfo file, string relativePath)
+        => ClassifyForFat32(file, relativePath) == Fat32FileAction.SplitWithDism;
 }

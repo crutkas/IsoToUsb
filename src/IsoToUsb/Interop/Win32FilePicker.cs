@@ -52,7 +52,18 @@ internal static class Win32FilePicker
             {
                 return new string(pBuffer);
             }
-            return null;
+            // Distinguish a clean cancel (CommDlgExtendedError returns 0)
+            // from a real dialog failure such as a too-short buffer. The
+            // previous behaviour silently returned null on every false
+            // return, hiding broken-filter / out-of-memory / stale-HWND
+            // bugs as "user cancelled".
+            var extError = (uint)PInvoke.CommDlgExtendedError();
+            if (extError == 0)
+            {
+                return null;
+            }
+            throw new InvalidOperationException(
+                $"GetOpenFileName failed (CommDlgExtendedError=0x{extError:X4}).");
         }
     }
 }

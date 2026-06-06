@@ -11,6 +11,7 @@ namespace IsoToUsb.Worker;
 ///   <item><c>L\t&lt;message&gt;</c> — log-only line (no progress change)</item>
 ///   <item><c>R\t&lt;totalSampled&gt;\t&lt;failures&gt;</c> — pipeline completed successfully</item>
 ///   <item><c>E\t&lt;exceptionType&gt;\t&lt;message&gt;</c> — pipeline threw</item>
+///   <item><c>C\t&lt;message&gt;</c> — pipeline cancelled by user (distinct from error)</item>
 /// </list>
 /// Parent → Worker:
 /// <list type="bullet">
@@ -25,6 +26,7 @@ internal static class WorkerProtocol
     public const string Log = "L";
     public const string Result = "R";
     public const string Error = "E";
+    public const string Canceled = "C";
     public const string CancelCommand = "CANCEL";
 
     /// <summary>Strips characters that would break line/field parsing.</summary>

@@ -23,7 +23,7 @@ internal static class PipelineWorker
     /// <returns>0 on success, 1 on pipeline error, 2 on bad arguments.</returns>
     public static int Run(string[] args)
     {
-        if (!TryParseArgs(args, out var pipeName, out var isoPath, out var diskNumber, out var parseError))
+        if (!TryParseArgs(args, out var parsed, out var parseError))
         {
             // No pipe yet, so we can't report this back. Stderr is invisible
             // for a WinExe but the parent treats exit code 2 as arg error.
@@ -33,7 +33,7 @@ internal static class PipelineWorker
 
         using var pipe = new NamedPipeClientStream(
             serverName: ".",
-            pipeName: pipeName,
+            pipeName: parsed.PipeName,
             direction: PipeDirection.InOut,
             options: PipeOptions.Asynchronous);
 
@@ -48,7 +48,11 @@ internal static class PipelineWorker
         }
 
         // ReadMode.Byte by default; line-based via StreamReader/Writer.
-        using var writer = new StreamWriter(pipe, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false)) { AutoFlush = true, NewLine = "\n" };
+        // Progress callbacks marshal arbitrary thread-pool threads into the
+        // writer; wrap once so every WriteLine is atomic.
+        var rawWriter = new StreamWriter(pipe, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false)) { AutoFlush = true, NewLine = "\n" };
+        using var disposeRawWriter = rawWriter;
+        var writer = TextWriter.Synchronized(rawWriter);
         using var reader = new StreamReader(pipe, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
         using var cts = new CancellationTokenSource();
@@ -85,7 +89,7 @@ internal static class PipelineWorker
 
         try
         {
-            var disk = ResolveDisk(diskNumber);
+            var disk = ResolveDisk(parsed);
 
             var pipeline = new UsbBuildPipeline();
             var progress = new Progress<PipelineProgress>(p =>
@@ -93,7 +97,7 @@ internal static class PipelineWorker
                 WriteProgress(writer, p);
             });
 
-            var task = pipeline.RunAsync(isoPath, disk, progress, cts.Token);
+            var task = pipeline.RunAsync(parsed.IsoPath, disk, progress, cts.Token);
             var results = task.GetAwaiter().GetResult();
 
             var failures = results.Count(r => !r.Match);
@@ -102,7 +106,7 @@ internal static class PipelineWorker
         }
         catch (OperationCanceledException)
         {
-            WriteError(writer, nameof(OperationCanceledException), "Canceled by user.");
+            WriteCanceled(writer, "Canceled by user.");
             return 1;
         }
         catch (Exception ex)
@@ -121,12 +125,20 @@ internal static class PipelineWorker
         }
     }
 
-    private static DiskInfo ResolveDisk(uint diskNumber)
+    /// <summary>
+    /// Looks up the current <see cref="DiskInfo"/> for the disk number that
+    /// the UI selected and verifies that its identity (serial + size) still
+    /// matches what the UI saw. This closes a TOCTOU window where a user
+    /// could unplug the chosen stick between selection and the worker
+    /// starting, and a different USB device could land on the same disk
+    /// number.
+    /// </summary>
+    private static DiskInfo ResolveDisk(WorkerArgs args)
     {
         var all = UsbDriveEnumerator.EnumerateAllDisks();
-        var disk = all.FirstOrDefault(d => d.Number == diskNumber)
+        var disk = all.FirstOrDefault(d => d.Number == args.DiskNumber)
             ?? throw new InvalidOperationException(
-                $"Disk number {diskNumber} not found. The device may have been unplugged.");
+                $"Disk number {args.DiskNumber} not found. The device may have been unplugged.");
 
         if (!UsbDriveEnumerator.IsTargetable(disk))
         {
@@ -134,10 +146,27 @@ internal static class PipelineWorker
                 $"Disk {disk.Number} '{disk.FriendlyName}' is not a safe USB target. " +
                 "Aborting before any destructive operation.");
         }
+
+        if (!string.IsNullOrEmpty(args.ExpectedSerial)
+            && !string.Equals(disk.SerialNumber, args.ExpectedSerial, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"Disk {disk.Number} serial mismatch. " +
+                $"Expected '{args.ExpectedSerial}' but found '{disk.SerialNumber}'. " +
+                "The device on this disk number changed since you selected it. Aborting.");
+        }
+
+        if (args.ExpectedSize != 0 && disk.SizeBytes != args.ExpectedSize)
+        {
+            throw new InvalidOperationException(
+                $"Disk {disk.Number} size mismatch. " +
+                $"Expected {args.ExpectedSize:N0} bytes but found {disk.SizeBytes:N0}. " +
+                "The device on this disk number changed since you selected it. Aborting.");
+        }
         return disk;
     }
 
-    private static void WriteProgress(StreamWriter writer, PipelineProgress p)
+    private static void WriteProgress(TextWriter writer, PipelineProgress p)
     {
         try
         {
@@ -153,7 +182,7 @@ internal static class PipelineWorker
         }
     }
 
-    private static void WriteResult(StreamWriter writer, int total, int failures)
+    private static void WriteResult(TextWriter writer, int total, int failures)
     {
         try
         {
@@ -167,7 +196,7 @@ internal static class PipelineWorker
         }
     }
 
-    private static void WriteError(StreamWriter writer, string typeName, string message)
+    private static void WriteError(TextWriter writer, string typeName, string message)
     {
         try
         {
@@ -181,20 +210,43 @@ internal static class PipelineWorker
         }
     }
 
+    private static void WriteCanceled(TextWriter writer, string message)
+    {
+        try
+        {
+            writer.WriteLine(string.Concat(
+                WorkerProtocol.Canceled, "\t",
+                WorkerProtocol.Sanitize(message)));
+        }
+        catch
+        {
+        }
+    }
+
+    private readonly record struct WorkerArgs(
+        string PipeName,
+        string IsoPath,
+        uint DiskNumber,
+        string ExpectedSerial,
+        ulong ExpectedSize);
+
     /// <summary>
-    /// Parses <c>--worker --pipe &lt;name&gt; --iso &lt;path&gt; --disk &lt;number&gt;</c>.
+    /// Parses <c>--worker --pipe &lt;name&gt; --iso &lt;path&gt; --disk &lt;number&gt;
+    /// [--serial &lt;s&gt;] [--size &lt;bytes&gt;]</c>. Serial and size are
+    /// optional only for backward compat; the launcher always sends them.
     /// </summary>
     private static bool TryParseArgs(
         string[] args,
-        out string pipeName,
-        out string isoPath,
-        out uint diskNumber,
+        out WorkerArgs parsed,
         out string error)
     {
-        pipeName = string.Empty;
-        isoPath = string.Empty;
-        diskNumber = 0;
+        string pipeName = string.Empty;
+        string isoPath = string.Empty;
+        uint diskNumber = 0;
+        string expectedSerial = string.Empty;
+        ulong expectedSize = 0;
         error = string.Empty;
+        parsed = default;
 
         for (int i = 0; i < args.Length; i++)
         {
@@ -213,11 +265,22 @@ internal static class PipelineWorker
                         return false;
                     }
                     break;
+                case "--serial" when i + 1 < args.Length:
+                    expectedSerial = args[++i];
+                    break;
+                case "--size" when i + 1 < args.Length:
+                    if (!ulong.TryParse(args[++i], System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out expectedSize))
+                    {
+                        error = "invalid --size value";
+                        return false;
+                    }
+                    break;
             }
         }
 
         if (string.IsNullOrWhiteSpace(pipeName)) { error = "missing --pipe"; return false; }
         if (string.IsNullOrWhiteSpace(isoPath)) { error = "missing --iso"; return false; }
+        parsed = new WorkerArgs(pipeName, isoPath, diskNumber, expectedSerial, expectedSize);
         return true;
     }
 }

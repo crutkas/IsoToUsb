@@ -21,13 +21,16 @@ public sealed class DismSplitter
 
     /// <summary>
     /// Splits <paramref name="sourceWim"/> into chunks under
-    /// <paramref name="destinationDirectory"/> named <c>install.swm</c>,
-    /// <c>install2.swm</c>, etc.
+    /// <paramref name="destinationDirectory"/>. The first chunk is named
+    /// after <paramref name="outputBaseName"/> (default: source file name
+    /// with <c>.swm</c> extension) and subsequent chunks get a numeric
+    /// suffix from dism (<c>name2.swm</c>, <c>name3.swm</c>, ...).
     /// </summary>
     public async Task SplitAsync(
         string sourceWim,
         string destinationDirectory,
         int chunkSizeMb = DefaultChunkMb,
+        string? outputBaseName = null,
         IProgress<DismProgress>? progress = null,
         CancellationToken cancellationToken = default)
     {
@@ -39,7 +42,10 @@ public sealed class DismSplitter
         }
         Directory.CreateDirectory(destinationDirectory);
 
-        var swmPath = Path.Combine(destinationDirectory, "install.swm");
+        var baseName = string.IsNullOrWhiteSpace(outputBaseName)
+            ? Path.GetFileNameWithoutExtension(sourceWim) + ".swm"
+            : outputBaseName!;
+        var swmPath = Path.Combine(destinationDirectory, baseName);
 
         var psi = new ProcessStartInfo
         {
@@ -90,7 +96,43 @@ public sealed class DismSplitter
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
 
-        await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+        // Make sure that a cancellation request actually kills dism.exe.
+        // Without this, the parent task observes OperationCanceledException
+        // immediately but dism keeps running in the background, holding the
+        // SWM file handles open and blocking the next pipeline retry.
+        await using var killOnCancel = cancellationToken.Register(static state =>
+        {
+            try
+            {
+                var p = (Process)state!;
+                if (!p.HasExited)
+                {
+                    p.Kill(entireProcessTree: true);
+                }
+            }
+            catch
+            {
+            }
+        }, process);
+
+        try
+        {
+            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // Wait (unbounded by the original token) for dism to actually
+            // exit after the Kill above, then re-throw so callers see the
+            // cancel just like they did before.
+            try
+            {
+                await process.WaitForExitAsync(CancellationToken.None).ConfigureAwait(false);
+            }
+            catch
+            {
+            }
+            throw;
+        }
 
         if (process.ExitCode != 0)
         {

@@ -11,7 +11,8 @@ public sealed class UsbDriveEnumeratorTests
         bool isSystem = false,
         bool isBoot = false,
         bool isReadOnly = false,
-        ulong size = 32UL * 1024 * 1024 * 1024) =>
+        ulong size = 32UL * 1024 * 1024 * 1024,
+        ushort mediaType = MediaTypes.Unspecified) =>
         new(
             Number: number,
             FriendlyName: "Test USB",
@@ -20,7 +21,8 @@ public sealed class UsbDriveEnumeratorTests
             BusType: bus,
             IsSystem: isSystem,
             IsBoot: isBoot,
-            IsReadOnly: isReadOnly);
+            IsReadOnly: isReadOnly,
+            MediaType: mediaType);
 
     [TestMethod]
     public void Usb_NotSystem_NotBoot_NotReadOnly_IsTargetable()
@@ -62,6 +64,34 @@ public sealed class UsbDriveEnumeratorTests
     public void ZeroSizeDisk_IsRejected()
     {
         Assert.IsFalse(UsbDriveEnumerator.IsTargetable(MakeDisk(size: 0)));
+    }
+
+    [TestMethod]
+    public void DiskOverMaxSize_IsRejected()
+    {
+        var oversized = UsbDriveEnumerator.MaxTargetableSize + 1;
+        Assert.IsFalse(UsbDriveEnumerator.IsTargetable(MakeDisk(size: oversized)));
+    }
+
+    [TestMethod]
+    public void DiskAtMaxSize_IsAllowed()
+    {
+        Assert.IsTrue(UsbDriveEnumerator.IsTargetable(MakeDisk(size: UsbDriveEnumerator.MaxTargetableSize)));
+    }
+
+    [TestMethod]
+    public void HddMedia_IsRejected_EvenOnUsb()
+    {
+        Assert.IsFalse(UsbDriveEnumerator.IsTargetable(MakeDisk(mediaType: MediaTypes.Hdd)));
+    }
+
+    [TestMethod]
+    [DataRow((ushort)MediaTypes.Unspecified)]
+    [DataRow((ushort)MediaTypes.Ssd)]
+    [DataRow((ushort)MediaTypes.Scm)]
+    public void NonHddMedia_IsAllowed(ushort mediaType)
+    {
+        Assert.IsTrue(UsbDriveEnumerator.IsTargetable(MakeDisk(mediaType: mediaType)));
     }
 
     [TestMethod]

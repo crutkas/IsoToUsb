@@ -4,19 +4,31 @@ namespace IsoToUsb.Services;
 
 /// <summary>
 /// Reads physical disks from the Storage Management API and filters down to
-/// the set safe to target: USB bus, not system, not boot, not read-only.
+/// the set safe to target: USB bus, not system, not boot, not read-only,
+/// not larger than <see cref="MaxTargetableSize"/>, and not a spinning HDD.
 /// </summary>
 public static class UsbDriveEnumerator
 {
     private const string StorageNamespace = @"\\.\root\Microsoft\Windows\Storage";
 
     /// <summary>
-    /// Returns every <c>MSFT_Disk</c> instance on the machine. The caller is
-    /// expected to pipe the result through <see cref="FilterTargetable"/>.
+    /// Hard ceiling on the size of any disk we will ever offer as a target.
+    /// 256 GiB comfortably covers commodity USB sticks while rejecting most
+    /// external SSDs and any plausible mis-identified internal disk.
+    /// </summary>
+    public const ulong MaxTargetableSize = 256UL * 1024 * 1024 * 1024;
+
+    /// <summary>
+    /// Returns every <c>MSFT_Disk</c> instance on the machine, with <see
+    /// cref="DiskInfo.MediaType"/> populated from <c>MSFT_PhysicalDisk</c> when
+    /// the numbers line up. The caller is expected to pipe the result through
+    /// <see cref="FilterTargetable"/>.
     /// </summary>
     public static IReadOnlyList<DiskInfo> EnumerateAllDisks()
     {
         var scope = new ManagementScope(StorageNamespace);
+        var mediaTypes = QueryMediaTypes(scope);
+
         var query = new ObjectQuery(
             "SELECT Number, FriendlyName, SerialNumber, Size, BusType, IsSystem, IsBoot, IsReadOnly FROM MSFT_Disk");
         using var searcher = new ManagementObjectSearcher(scope, query);
@@ -27,14 +39,15 @@ public static class UsbDriveEnumerator
         {
             using (disk)
             {
-                results.Add(MapToDiskInfo(disk));
+                results.Add(MapToDiskInfo(disk, mediaTypes));
             }
         }
         return results;
     }
 
     /// <summary>
-    /// USB-bus disks that aren't the system disk, boot disk, or write-protected.
+    /// USB-bus disks that aren't the system disk, boot disk, write-protected,
+    /// larger than <see cref="MaxTargetableSize"/>, or backed by spinning media.
     /// This is the only set we will ever offer the user as a target.
     /// </summary>
     public static IEnumerable<DiskInfo> FilterTargetable(IEnumerable<DiskInfo> disks)
@@ -53,20 +66,68 @@ public static class UsbDriveEnumerator
             && !disk.IsSystem
             && !disk.IsBoot
             && !disk.IsReadOnly
-            && disk.SizeBytes > 0;
+            && disk.SizeBytes > 0
+            && disk.SizeBytes <= MaxTargetableSize
+            && !disk.IsHdd;
     }
 
-    internal static DiskInfo MapToDiskInfo(ManagementBaseObject mbo)
+    internal static DiskInfo MapToDiskInfo(
+        ManagementBaseObject mbo,
+        IReadOnlyDictionary<uint, ushort>? mediaTypes = null)
     {
+        var number = ConvertTo<uint>(mbo["Number"]);
+        ushort mediaType = MediaTypes.Unspecified;
+        if (mediaTypes is not null && mediaTypes.TryGetValue(number, out var mt))
+        {
+            mediaType = mt;
+        }
         return new DiskInfo(
-            Number: ConvertTo<uint>(mbo["Number"]),
+            Number: number,
             FriendlyName: mbo["FriendlyName"]?.ToString()?.Trim() ?? "(unknown)",
             SerialNumber: mbo["SerialNumber"]?.ToString()?.Trim() ?? string.Empty,
             SizeBytes: ConvertTo<ulong>(mbo["Size"]),
             BusType: ConvertTo<ushort>(mbo["BusType"]),
             IsSystem: ConvertTo<bool>(mbo["IsSystem"]),
             IsBoot: ConvertTo<bool>(mbo["IsBoot"]),
-            IsReadOnly: ConvertTo<bool>(mbo["IsReadOnly"]));
+            IsReadOnly: ConvertTo<bool>(mbo["IsReadOnly"]),
+            MediaType: mediaType);
+    }
+
+    /// <summary>
+    /// Builds a map from <c>MSFT_Disk.Number</c> → <c>MSFT_PhysicalDisk.MediaType</c>.
+    /// Returns an empty dictionary if the WMI query throws (e.g. permission
+    /// or driver issues) so enumeration never fails over a bonus signal.
+    /// </summary>
+    private static IReadOnlyDictionary<uint, ushort> QueryMediaTypes(ManagementScope scope)
+    {
+        var map = new Dictionary<uint, ushort>();
+        try
+        {
+            var query = new ObjectQuery("SELECT DeviceId, MediaType FROM MSFT_PhysicalDisk");
+            using var searcher = new ManagementObjectSearcher(scope, query);
+            using var collection = searcher.Get();
+            foreach (ManagementObject pd in collection)
+            {
+                using (pd)
+                {
+                    var deviceId = pd["DeviceId"]?.ToString();
+                    if (string.IsNullOrEmpty(deviceId)
+                        || !uint.TryParse(deviceId, System.Globalization.NumberStyles.Integer,
+                            System.Globalization.CultureInfo.InvariantCulture, out var number))
+                    {
+                        continue;
+                    }
+                    map[number] = ConvertTo<ushort>(pd["MediaType"]);
+                }
+            }
+        }
+        catch (ManagementException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
+        return map;
     }
 
     private static T ConvertTo<T>(object? value) where T : struct

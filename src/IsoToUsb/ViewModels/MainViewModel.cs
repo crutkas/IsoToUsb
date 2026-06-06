@@ -128,7 +128,11 @@ public partial class MainViewModel : ObservableObject
                 .RunAsync(IsoPath, SelectedDrive, progress, _cts.Token)
                 .ConfigureAwait(true);
 
-            if (outcome.Success)
+            if (outcome.Canceled)
+            {
+                Result = "Cancelled.";
+            }
+            else if (outcome.Success)
             {
                 Result = outcome.Failures == 0
                     ? $"Success — {outcome.TotalSampled} sampled files verified, USB is ready to boot."

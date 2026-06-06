@@ -13,6 +13,8 @@ namespace IsoToUsb.Services;
 /// <param name="IsSystem"><c>true</c> if the disk hosts the running OS.</param>
 /// <param name="IsBoot"><c>true</c> if the disk is the firmware boot disk.</param>
 /// <param name="IsReadOnly"><c>true</c> if the disk is write-protected.</param>
+/// <param name="MediaType">Underlying media type from <c>MSFT_PhysicalDisk</c>;
+/// see <see cref="MediaTypes"/>. <c>0</c> if unknown.</param>
 public sealed record DiskInfo(
     uint Number,
     string FriendlyName,
@@ -21,10 +23,14 @@ public sealed record DiskInfo(
     ushort BusType,
     bool IsSystem,
     bool IsBoot,
-    bool IsReadOnly)
+    bool IsReadOnly,
+    ushort MediaType = 0)
 {
     /// <summary>Disk reports BusType == USB.</summary>
     public bool IsUsbBus => BusType == BusTypes.Usb;
+
+    /// <summary>True if the underlying media is a spinning hard drive.</summary>
+    public bool IsHdd => MediaType == MediaTypes.Hdd;
 
     /// <summary>Human-friendly size, e.g. "32.0 GB".</summary>
     public string SizeDisplay => FormatBytes(SizeBytes);
