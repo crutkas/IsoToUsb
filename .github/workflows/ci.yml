@@ -24,13 +24,17 @@ jobs:
         run: dotnet --info
 
       - name: Restore
-        run: dotnet restore IsoToUsb.slnx
+        run: |
+          dotnet restore src/IsoToUsb/IsoToUsb.csproj
+          dotnet restore tests/IsoToUsb.Tests/IsoToUsb.Tests.csproj
 
       - name: Build
-        run: dotnet build IsoToUsb.slnx -c Release --no-restore
+        run: |
+          dotnet build src/IsoToUsb/IsoToUsb.csproj -c Release --no-restore
+          dotnet build tests/IsoToUsb.Tests/IsoToUsb.Tests.csproj -c Release --no-restore
 
       - name: Test
-        run: dotnet test IsoToUsb.slnx -c Release --no-build --nologo
+        run: dotnet test tests/IsoToUsb.Tests/IsoToUsb.Tests.csproj -c Release --no-build --nologo
 
       - name: Publish (win-x64, NativeAOT, self-contained)
         run: dotnet publish src/IsoToUsb/IsoToUsb.csproj -c Release -p:PublishProfile=win-x64
