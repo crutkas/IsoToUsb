@@ -344,6 +344,17 @@ public partial class MainViewModel : ObservableObject
         _cts = new CancellationTokenSource();
         var progress = new Progress<PipelineProgress>(p =>
         {
+            // Drop late ticks: after the user cancels (or after the build
+            // finishes and IsBusy clears in the finally block) the worker
+            // can still emit a handful of in-flight progress messages that
+            // were queued in the pipe reader. Without this guard those late
+            // ticks call UpdatePhase and overwrite the Cancelled rail node
+            // back to Running, which then strands the pipeline UI with a
+            // spinning ring after Cancel was clicked.
+            if (!IsBusy || _cts is null || _cts.IsCancellationRequested)
+            {
+                return;
+            }
             if (p.Percent >= 0)
             {
                 ProgressPercent = p.Percent;
