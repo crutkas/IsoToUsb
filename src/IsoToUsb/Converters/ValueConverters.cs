@@ -193,7 +193,21 @@ public sealed class LogSeverityToBrushConverter : IValueConverter
 public sealed class BoolToFocalOpacityConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)
-        => (value is bool b && b) ? 1.0 : 0.62;
+        => (value is bool b && b) ? 1.0 : 0.55;
+    public object ConvertBack(object value, Type targetType, object parameter, string language)
+        => throw new NotSupportedException();
+}
+
+/// <summary>
+/// Bool-to-opacity mapping for the accent halo that sits BEHIND a focal card.
+/// <c>true</c> shows the halo (1.0), <c>false</c> hides it (0.0). Pair with a
+/// translucent accent brush on the halo borders to get the "glow" effect from
+/// the design board.
+/// </summary>
+public sealed class BoolToHaloOpacityConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, string language)
+        => (value is bool b && b) ? 1.0 : 0.0;
     public object ConvertBack(object value, Type targetType, object parameter, string language)
         => throw new NotSupportedException();
 }

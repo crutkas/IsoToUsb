@@ -43,9 +43,19 @@
             <conv:StatusKindToBrushConverter x:Key="StatusKindToBrushConverter" />
             <conv:LogSeverityToBrushConverter x:Key="LogSeverityToBrushConverter" />
             <conv:BoolToFocalOpacityConverter x:Key="BoolToFocalOpacityConverter" />
+            <conv:BoolToHaloOpacityConverter x:Key="BoolToHaloOpacityConverter" />
             <conv:BoolToFocalBorderBrushConverter x:Key="BoolToFocalBorderBrushConverter" />
             <conv:BoolToFocalBackgroundConverter x:Key="BoolToFocalBackgroundConverter" />
             <conv:PhaseStatusToRailBrushConverter x:Key="PhaseStatusToRailBrushConverter" />
+
+            <!-- Stacked translucent accent rings used by the focal-card halo.
+                 Together they approximate the design board's box-shadow halo:
+                 outer = wider + fainter, inner = tighter + stronger. Opacity is
+                 baked into the brushes so the halo Border in XAML can stay
+                 simple (Background=brush, Opacity bound only to focal state). -->
+            <SolidColorBrush x:Key="FocalHaloOuterBrush" Color="{ThemeResource SystemAccentColor}" Opacity="0.10" />
+            <SolidColorBrush x:Key="FocalHaloInnerBrush" Color="{ThemeResource SystemAccentColor}" Opacity="0.18" />
+            <SolidColorBrush x:Key="FocalHaloEdgeBrush"  Color="{ThemeResource SystemAccentColor}" Opacity="0.45" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

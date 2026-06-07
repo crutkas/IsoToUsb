@@ -30,20 +30,42 @@
         </Grid.RowDefinitions>
 
         <!-- ======================== TWIN FLOATING CARDS ======================== -->
-        <Grid Grid.Row="0" Padding="14" ColumnSpacing="14">
+        <Grid Grid.Row="0" Padding="18" ColumnSpacing="18">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="320" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <!-- ====== LEFT · SETUP CARD ====== -->
-            <Border
-                Grid.Column="0"
-                CornerRadius="12"
-                BorderThickness="1"
-                Background="{x:Bind ViewModel.IsSetupFocal, Mode=OneWay, Converter={StaticResource BoolToFocalBackgroundConverter}}"
-                BorderBrush="{x:Bind ViewModel.IsSetupFocal, Mode=OneWay, Converter={StaticResource BoolToFocalBorderBrushConverter}}"
-                Opacity="{x:Bind ViewModel.IsSetupFocal, Mode=OneWay, Converter={StaticResource BoolToFocalOpacityConverter}}">
+            <!-- ====== LEFT · SETUP CARD (with focal halo) ====== -->
+            <Grid Grid.Column="0">
+                <!-- Halo ring 3 (outermost, faintest, biggest spread) -->
+                <Border
+                    Margin="-10"
+                    CornerRadius="20"
+                    Background="{StaticResource FocalHaloOuterBrush}"
+                    IsHitTestVisible="False"
+                    Opacity="{x:Bind ViewModel.IsSetupFocal, Mode=OneWay, Converter={StaticResource BoolToHaloOpacityConverter}}" />
+                <!-- Halo ring 2 (mid, mid alpha) -->
+                <Border
+                    Margin="-5"
+                    CornerRadius="16"
+                    Background="{StaticResource FocalHaloInnerBrush}"
+                    IsHitTestVisible="False"
+                    Opacity="{x:Bind ViewModel.IsSetupFocal, Mode=OneWay, Converter={StaticResource BoolToHaloOpacityConverter}}" />
+                <!-- Halo edge (tightest, strongest — reads as the accent border) -->
+                <Border
+                    Margin="-1"
+                    CornerRadius="13"
+                    Background="{StaticResource FocalHaloEdgeBrush}"
+                    IsHitTestVisible="False"
+                    Opacity="{x:Bind ViewModel.IsSetupFocal, Mode=OneWay, Converter={StaticResource BoolToHaloOpacityConverter}}" />
+                <!-- Actual card -->
+                <Border
+                    CornerRadius="12"
+                    BorderThickness="1"
+                    Background="{x:Bind ViewModel.IsSetupFocal, Mode=OneWay, Converter={StaticResource BoolToFocalBackgroundConverter}}"
+                    BorderBrush="{x:Bind ViewModel.IsSetupFocal, Mode=OneWay, Converter={StaticResource BoolToFocalBorderBrushConverter}}"
+                    Opacity="{x:Bind ViewModel.IsSetupFocal, Mode=OneWay, Converter={StaticResource BoolToFocalOpacityConverter}}">
                 <Grid Padding="18" RowSpacing="14">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -190,16 +212,35 @@
                         </StackPanel>
                     </Border>
                 </Grid>
-            </Border>
+                </Border>
+            </Grid>
 
-            <!-- ====== RIGHT · WORK CARD (phase rail + log) ====== -->
-            <Border
-                Grid.Column="1"
-                CornerRadius="12"
-                BorderThickness="1"
-                Background="{x:Bind ViewModel.IsWorkFocal, Mode=OneWay, Converter={StaticResource BoolToFocalBackgroundConverter}}"
-                BorderBrush="{x:Bind ViewModel.IsWorkFocal, Mode=OneWay, Converter={StaticResource BoolToFocalBorderBrushConverter}}"
-                Opacity="{x:Bind ViewModel.IsWorkFocal, Mode=OneWay, Converter={StaticResource BoolToFocalOpacityConverter}}">
+            <!-- ====== RIGHT · WORK CARD (phase rail + log, with focal halo) ====== -->
+            <Grid Grid.Column="1">
+                <Border
+                    Margin="-10"
+                    CornerRadius="20"
+                    Background="{StaticResource FocalHaloOuterBrush}"
+                    IsHitTestVisible="False"
+                    Opacity="{x:Bind ViewModel.IsWorkFocal, Mode=OneWay, Converter={StaticResource BoolToHaloOpacityConverter}}" />
+                <Border
+                    Margin="-5"
+                    CornerRadius="16"
+                    Background="{StaticResource FocalHaloInnerBrush}"
+                    IsHitTestVisible="False"
+                    Opacity="{x:Bind ViewModel.IsWorkFocal, Mode=OneWay, Converter={StaticResource BoolToHaloOpacityConverter}}" />
+                <Border
+                    Margin="-1"
+                    CornerRadius="13"
+                    Background="{StaticResource FocalHaloEdgeBrush}"
+                    IsHitTestVisible="False"
+                    Opacity="{x:Bind ViewModel.IsWorkFocal, Mode=OneWay, Converter={StaticResource BoolToHaloOpacityConverter}}" />
+                <Border
+                    CornerRadius="12"
+                    BorderThickness="1"
+                    Background="{x:Bind ViewModel.IsWorkFocal, Mode=OneWay, Converter={StaticResource BoolToFocalBackgroundConverter}}"
+                    BorderBrush="{x:Bind ViewModel.IsWorkFocal, Mode=OneWay, Converter={StaticResource BoolToFocalBorderBrushConverter}}"
+                    Opacity="{x:Bind ViewModel.IsWorkFocal, Mode=OneWay, Converter={StaticResource BoolToFocalOpacityConverter}}">
                 <Grid ColumnSpacing="0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="86" />
@@ -341,7 +382,8 @@
                         </ScrollViewer>
                     </Grid>
                 </Grid>
-            </Border>
+                </Border>
+            </Grid>
         </Grid>
 
         <!-- ======================== BOTTOM ACTION BAR ======================== -->
