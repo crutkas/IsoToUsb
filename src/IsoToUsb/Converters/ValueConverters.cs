@@ -187,14 +187,19 @@ public sealed class LogSeverityToBrushConverter : IValueConverter
 }
 
 /// <summary>
+/// <summary>
 /// Bool-to-opacity mapping used to dim the inactive card in the Twin-cards
 /// elevation shift. <c>true</c> (focal) returns full opacity, <c>false</c>
-/// returns a softly washed-out value that keeps text legible.
+/// returns a softly washed-out value that keeps text legible. Matches the
+/// design board's <c>--pane-opacity: .82</c> for the twin frame's inactive
+/// side-card (design/elevation-a-v2.html). Lower values (e.g. 0.62) made
+/// the rail nodes effectively disappear because their fills are already
+/// alpha ~13% — and opacities compound.
 /// </summary>
 public sealed class BoolToFocalOpacityConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)
-        => (value is bool b && b) ? 1.0 : 0.62;
+        => (value is bool b && b) ? 1.0 : 0.82;
     public object ConvertBack(object value, Type targetType, object parameter, string language)
         => throw new NotSupportedException();
 }
