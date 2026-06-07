@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="icon09-title icon09-desc">
+  <title id="icon09-title">Abstract container to flag</title>
+  <desc id="icon09-desc">A hollow ISO container emits a green boot flag for the most minimal concept direction.</desc>
+  <defs>
+    <linearGradient id="icon09-blue" x1="43" y1="54" x2="169" y2="180" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4CC2FF"/>
+      <stop offset="1" stop-color="#0078D4"/>
+    </linearGradient>
+    <linearGradient id="icon09-flag" x1="164" y1="76" x2="218" y2="144" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6CCB5F"/>
+      <stop offset="1" stop-color="#107C10"/>
+    </linearGradient>
+  </defs>
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <rect x="43" y="54" width="126" height="126" rx="32" fill="none" stroke="url(#icon09-blue)" stroke-width="24"/>
+    <path d="M164 86V184" fill="none" stroke="#107C10" stroke-width="16"/>
+    <path d="M168 83C184 85 197 73 218 84V139C197 128 184 141 168 139Z" fill="url(#icon09-flag)"/>
+  </g>
+</svg>

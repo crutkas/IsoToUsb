@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="icon01-title icon01-desc">
+  <title id="icon01-title">Disc to USB flow</title>
+  <desc id="icon01-desc">An optical disc flows through a rounded arrow into a USB stick to show ISO conversion.</desc>
+  <defs>
+    <linearGradient id="icon01-usb" x1="158" y1="87" x2="216" y2="169" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4CC2FF"/>
+      <stop offset="1" stop-color="#0078D4"/>
+    </linearGradient>
+  </defs>
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="72" cy="128" r="52" fill="#FBFBFB" stroke="#0078D4" stroke-width="16"/>
+    <circle cx="72" cy="128" r="16" fill="#ECECEC" stroke="#4CC2FF" stroke-width="8"/>
+    <path d="M46 102Q72 86 98 102" fill="none" stroke="#0078D4" stroke-opacity="0.16" stroke-width="10"/>
+    <path d="M112 128H153" fill="none" stroke="#107C10" stroke-width="18"/>
+    <path d="M139 108L159 128L139 148" fill="none" stroke="#107C10" stroke-width="18"/>
+    <rect x="158" y="87" width="58" height="82" rx="18" fill="url(#icon01-usb)"/>
+    <rect x="210" y="105" width="22" height="46" rx="6" fill="#005A9E"/>
+    <path d="M173 109H201M173 147H201" fill="none" stroke="#FBFBFB" stroke-opacity="0.72" stroke-width="9"/>
+  </g>
+</svg>

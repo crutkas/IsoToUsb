@@ -232,8 +232,8 @@ public partial class MainViewModel : ObservableObject
             new PhaseItem("Mount install image",     "Mount",    "\uE8B7"), // FolderHorizontal
             new PhaseItem("Wipe and partition USB",  "Wipe",     "\uE74D"), // Delete
             new PhaseItem("Copy files to USB",       "Copy",     "\uE8C8"), // Copy
-            new PhaseItem("Split large WIM files",   "Split",    "\uE8FB"), // Cut
-            new PhaseItem("Verify random sample",    "Verify",   "\uE930"), // Certificate
+            new PhaseItem("Split large WIM files",   "Split",    "\uE8C6"), // Cut (scissors)
+            new PhaseItem("Verify random sample",    "Verify",   "\uE9D5"), // Trackers (checklist of items being verified)
         });
 
     // Index alongside Phases for O(1) lookup from PipelineStage.

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="icon04-title icon04-desc">
+  <title id="icon04-title">USB-shaped Windows mark</title>
+  <desc id="icon04-desc">Four rounded panes form the body of a USB stick for an abstract Windows install-drive cue.</desc>
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <rect x="28" y="58" width="64" height="64" rx="16" fill="#0078D4"/>
+    <rect x="102" y="58" width="64" height="64" rx="16" fill="#0B83DA"/>
+    <rect x="28" y="134" width="64" height="64" rx="16" fill="#0067C0"/>
+    <rect x="102" y="134" width="64" height="64" rx="16" fill="#4CC2FF"/>
+    <rect x="174" y="91" width="46" height="74" rx="12" fill="#0078D4"/>
+    <rect x="214" y="108" width="14" height="40" rx="5" fill="#005A9E"/>
+    <path d="M188 111H206M188 145H206" fill="none" stroke="#FBFBFB" stroke-opacity="0.62" stroke-width="8"/>
+  </g>
+</svg>

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="icon02-title icon02-desc">
+  <title id="icon02-title">USB with bootloader bolt</title>
+  <desc id="icon02-desc">A tall USB stick carries a bold lightning bolt to signal a bootable drive.</desc>
+  <defs>
+    <linearGradient id="icon02-body" x1="74" y1="62" x2="182" y2="218" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4CC2FF"/>
+      <stop offset="1" stop-color="#0078D4"/>
+    </linearGradient>
+  </defs>
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <rect x="96" y="20" width="64" height="52" rx="10" fill="#005A9E"/>
+    <rect x="108" y="30" width="12" height="24" rx="4" fill="#4CC2FF" opacity="0.75"/>
+    <rect x="136" y="30" width="12" height="24" rx="4" fill="#4CC2FF" opacity="0.75"/>
+    <rect x="74" y="62" width="108" height="156" rx="28" fill="url(#icon02-body)"/>
+    <path d="M136 82L102 139H126L112 188L162 116H136Z" fill="#FCE100" stroke="#C46E00" stroke-width="8"/>
+  </g>
+</svg>

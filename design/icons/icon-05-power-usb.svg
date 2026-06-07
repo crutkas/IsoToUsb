@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="icon05-title icon05-desc">
+  <title id="icon05-title">Power-button USB</title>
+  <desc id="icon05-desc">A USB drive carries a large Fluent power glyph to emphasize bootability.</desc>
+  <defs>
+    <linearGradient id="icon05-body" x1="68" y1="42" x2="188" y2="222" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4CC2FF"/>
+      <stop offset="1" stop-color="#0078D4"/>
+    </linearGradient>
+  </defs>
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <rect x="68" y="42" width="120" height="142" rx="30" fill="url(#icon05-body)"/>
+    <rect x="96" y="178" width="64" height="44" rx="10" fill="#005A9E"/>
+    <rect x="111" y="190" width="10" height="18" rx="4" fill="#4CC2FF" opacity="0.7"/>
+    <rect x="135" y="190" width="10" height="18" rx="4" fill="#4CC2FF" opacity="0.7"/>
+    <path d="M128 78V112" fill="none" stroke="#FBFBFB" stroke-width="18"/>
+    <path d="M98 114C86 139 104 166 128 166C152 166 170 139 158 114" fill="none" stroke="#FBFBFB" stroke-width="18"/>
+  </g>
+</svg>

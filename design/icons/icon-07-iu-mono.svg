@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="icon07-title icon07-desc">
+  <title id="icon07-title">I to U monogram</title>
+  <desc id="icon07-desc">A geometric I-to-U arrow monogram makes a compact favicon-style mark for IsoToUsb.</desc>
+  <defs>
+    <linearGradient id="icon07-blue" x1="28" y1="44" x2="242" y2="210" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4CC2FF"/>
+      <stop offset="1" stop-color="#0078D4"/>
+    </linearGradient>
+  </defs>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M42 58H72M57 58V198M42 198H72" stroke="url(#icon07-blue)" stroke-width="28"/>
+    <path d="M154 66V154C154 184 171 202 194 202C217 202 228 184 228 154V66" stroke="url(#icon07-blue)" stroke-width="28"/>
+    <path d="M84 128H132" stroke="#107C10" stroke-width="20"/>
+    <path d="M121 106L143 128L121 150" stroke="#107C10" stroke-width="20"/>
+  </g>
+</svg>

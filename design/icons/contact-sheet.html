@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IsoToUsb icon concepts</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page: #ECECEC;
+    --card: #FBFBFB;
+    --text: #1B1B1B;
+    --muted: #5D5D5D;
+    --border: rgba(0,0,0,0.10);
+    --accent: #0078D4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --page: #161616;
+      --card: #1B1B1B;
+      --text: #F5F5F5;
+      --muted: #B5B5B5;
+      --border: rgba(255,255,255,0.12);
+      --accent: #4CC2FF;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #161616;
+    --card: #1B1B1B;
+    --text: #F5F5F5;
+    --muted: #B5B5B5;
+    --border: rgba(255,255,255,0.12);
+    --accent: #4CC2FF;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--text);
+    font: 14px/1.45 "Segoe UI Variable Display", "Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  }
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 24px;
+    background: color-mix(in srgb, var(--card) 88%, transparent);
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(18px) saturate(140%);
+  }
+  h1 { margin: 0; font-size: 22px; font-weight: 650; letter-spacing: -0.2px; }
+  .intro { margin: 2px 0 0; color: var(--muted); }
+  button {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text);
+    padding: 8px 12px;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+  main { padding: 24px; }
+  .sheet {
+    display: flex;
+    gap: 18px;
+    align-items: stretch;
+    overflow-x: auto;
+    padding: 4px 2px 24px;
+    scroll-snap-type: x proximity;
+  }
+  .card {
+    flex: 0 0 390px;
+    scroll-snap-align: start;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 10px 28px rgba(0,0,0,0.08);
+  }
+  .card-head { min-height: 130px; padding: 18px 18px 12px; border-bottom: 1px solid var(--border); }
+  .kicker { color: var(--accent); font-size: 12px; font-weight: 750; letter-spacing: 0.5px; text-transform: uppercase; }
+  h2 { margin: 6px 0; font-size: 18px; line-height: 1.2; }
+  .desc { margin: 0; color: var(--muted); }
+  .surface { padding: 14px; border-bottom: 1px solid var(--border); }
+  .surface:last-child { border-bottom: 0; }
+  .surface-title { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 12px; font-weight: 650; }
+  .surface-title span:last-child { color: var(--muted); font-weight: 500; }
+  .swatch {
+    border-radius: 14px;
+    padding: 12px;
+    display: grid;
+    grid-template-columns: 256px 64px 44px;
+    align-items: center;
+    gap: 12px;
+    min-height: 280px;
+    box-shadow: inset 0 0 0 1px rgba(128,128,128,0.18);
+  }
+  .light-bg { background: #ECECEC; color: #1B1B1B; }
+  .dark-bg { background: #161616; color: #F5F5F5; }
+  .preview { display: grid; place-items: center; }
+  .preview img { display: block; }
+  .size-256 img { width: 256px; height: 256px; }
+  .size-64 img { width: 64px; height: 64px; }
+  .size-16 { width: 44px; height: 44px; border-radius: 10px; background: rgba(128,128,128,0.10); }
+  .size-16 img { width: 16px; height: 16px; }
+  .legend { display: grid; grid-template-columns: 256px 64px 44px; gap: 12px; margin-top: 8px; color: var(--muted); font-size: 11px; text-align: center; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>IsoToUsb icon concepts</h1>
+    <p class="intro">Nine distinct SVG directions shown at 256, 64, and true 16 pixels on the app light and dark surfaces.</p>
+  </div>
+  <button id="themeToggle" type="button">Toggle page theme</button>
+</header>
+<main>
+  <section class="sheet" aria-label="Icon concepts">
+    <article class="card">
+      <div class="card-head"><div class="kicker">01</div><h2>Disc → USB flow</h2><p class="desc">Literal conversion: an ISO disc moves through a green action arrow into a USB stick.</p></div>
+      <div class="surface"><div class="surface-title"><span>Light surface</span><span>#ECECEC</span></div><div class="swatch light-bg"><div class="preview size-256"><img src="icon-01-disc-to-usb.svg" alt="Disc to USB flow at 256 pixels"></div><div class="preview size-64"><img src="icon-01-disc-to-usb.svg" alt="Disc to USB flow at 64 pixels"></div><div class="preview size-16"><img src="icon-01-disc-to-usb.svg" alt="Disc to USB flow at 16 pixels"></div></div><div class="legend"><span>256</span><span>64</span><span>16</span></div></div>
+      <div class="surface"><div class="surface-title"><span>Dark surface</span><span>#161616</span></div><div class="swatch dark-bg"><div class="preview size-256"><img src="icon-01-disc-to-usb.svg" alt="Disc to USB flow at 256 pixels on dark"></div><div class="preview size-64"><img src="icon-01-disc-to-usb.svg" alt="Disc to USB flow at 64 pixels on dark"></div><div class="preview size-16"><img src="icon-01-disc-to-usb.svg" alt="Disc to USB flow at 16 pixels on dark"></div></div><div class="legend"><span>256</span><span>64</span><span>16</span></div></div>
+    </article>
+    <article class="card">
+      <div class="card-head"><div class="kicker">02</div><h2>USB with bootloader bolt</h2><p class="desc">A single USB silhouette plus an orange-yellow bolt reads quickly as bootable media.</p></div>
+      <div class="surface"><div class="surface-title"><span>Light surface</span><span>#ECECEC</span></div><div class="swatch light-bg"><div class="preview size-256"><img src="icon-02-bolt-usb.svg" alt="USB with bootloader bolt at 256 pixels"></div><div class="preview size-64"><img src="icon-02-bolt-usb.svg" alt="USB with bootloader bolt at 64 pixels"></div><div class="preview size-16"><img src="icon-02-bolt-usb.svg" alt="USB with bootloader bolt at 16 pixels"></div></div><div class="legend"><span>256</span><span>64</span><span>16</span></div></div>
+      <div class="surface"><div class="surface-title"><span>Dark surface</span><span>#161616</span></div><div class="swatch dark-bg"><div class="preview size-256"><img src="icon-02-bolt-usb.svg" alt="USB with bootloader bolt at 256 pixels on dark"></div><div class="preview size-64"><img src="icon-02-bolt-usb.svg" alt="USB with bootloader bolt at 64 pixels on dark"></div><div class="preview size-16"><img src="icon-02-bolt-usb.svg" alt="USB with bootloader bolt at 16 pixels on dark"></div></div><div class="legend"><span>256</span><span>64</span><span>16</span></div></div>
+    </article>
+    <article class="card">
+      <div class="card-head"><div class="kicker">03</div><h2>Stacked layers ➜ stick</h2><p class="desc">Three rounded image layers flow into a USB connector to suggest unpacking the ISO.</p></div>
+      <div class="surface"><div class="surface-title"><span>Light surface</span><span>#ECECEC</span></div><div class="swatch light-bg"><div class="preview size-256"><img src="icon-03-layers-to-usb.svg" alt="Stacked layers to stick at 256 pixels"></div><div class="preview size-64"><img src="icon-03-layers-to-usb.svg" alt="Stacked layers to stick at 64 pixels"></div><div class="preview size-16"><img src="icon-03-layers-to-usb.svg" alt="Stacked layers to stick at 16 pixels"></div></div><div class="legend"><span>256</span><span>64</span><span>16</span></div></div>
+      <div class="surface"><div class="surface-title"><span>Dark surface</span><span>#161616</span></div><div class="swatch dark-bg"><div class="preview size-256"><img src="icon-03-layers-to-usb.svg" alt="Stacked layers to stick at 256 pixels on dark"></div><div class="preview size-64"><img src="icon-03-layers-to-usb.svg" alt="Stacked layers to stick at 64 pixels on dark"></div><div class="preview size-16"><img src="icon-03-layers-to-usb.svg" alt="Stacked layers to stick at 16 pixels on dark"></div></div><div class="legend"><span>256</span><span>64</span><span>16</span></div></div>
+    </article>
+    <article class="card">
+      <div class="card-head"><div class="kicker">04</div><h2>USB-shaped Windows mark</h2><p class="desc">An abstract four-pane USB body gives the strongest Windows-install association.</p></div>
+      <div class="surface"><div class="surface-title"><span>Light surface</span><span>#ECECEC</span></div><div class="swatch light-bg"><div class="preview size-256"><img src="icon-04-windows-usb.svg" alt="USB-shaped Windows mark at 256 pixels"></div><div class="preview size-64"><img src="icon-04-windows-usb.svg" alt="USB-shaped Windows mark at 64 pixels"></div><div class="preview size-16"><img src="icon-04-windows-usb.svg" alt="USB-shaped Windows mark at 16 pixels"></div></div><div class="legend"><span>256</span><span>64</span><span>16</span></div></div>
+      <div class="surface"><div class="surface-title"><span>Dark surface</span><span>#161616</span></div><div class="swatch dark-bg"><div class="preview size-256"><img src="icon-04-windows-usb.svg" alt="USB-shaped Windows mark at 256 pixels on dark"></div><div class="preview size-64"><img src="icon-04-windows-usb.svg" alt="USB-shaped Windows mark at 64 pixels on dark"></div><div class="preview size-16"><img src="icon-04-windows-usb.svg" alt="USB-shaped Windows mark at 16 pixels on dark"></div></div><div class="legend"><span>256</span><span>64</span><span>16</span></div></div>
+    </article>
+    <article class="card">
+      <div class="card-head"><div class="kicker">05</div><h2>Power-button USB</h2><p class="desc">The large power glyph makes the boot intent clear while staying calm and Fluent.</p></div>
+      <div class="surface"><div class="surface-title"><span>Light surface</span><span>#ECECEC</span></div><div class="swatch light-bg"><div class="preview size-256"><img src="icon-05-power-usb.svg" alt="Power-button USB at 256 pixels"></div><div class="preview size-64"><img src="icon-05-power-usb.svg" alt="Power-button USB at 64 pixels"></div><div class="preview size-16"><img src="icon-05-power-usb.svg" alt="Power-button USB at 16 pixels"></div></div><div class="legend"><span>256</span><span>64</span><span>16</span></div></div>
+      <div class="surface"><div class="surface-title"><span>Dark surface</span><span>#161616</span></div><div class="swatch dark-bg"><div class="preview size-256"><img src="icon-05-power-usb.svg" alt="Power-button USB at 256 pixels on dark"></div><div class="preview size-64"><img src="icon-05-power-usb.svg" alt="Power-button USB at 64 pixels on dark"></div><div class="preview size-16"><img src="icon-05-power-usb.svg" alt="Power-button USB at 16 pixels on dark"></div></div><div class="legend"><span>256</span><span>64</span><span>16</span></div></div>
+    </article>
+    <article class="card">
+      <div class="card-head"><div class="kicker">06</div><h2>Arc / progress ring USB</h2><p class="desc">A rail-like progress arc frames the USB to connect the icon with the app workflow.</p></div>
+      <div class="surface"><div class="surface-title"><span>Light surface</span><span>#ECECEC</span></div><div class="swatch light-bg"><div class="preview size-256"><img src="icon-06-arc-usb.svg" alt="Arc progress ring USB at 256 pixels"></div><div class="preview size-64"><img src="icon-06-arc-usb.svg" alt="Arc progress ring USB at 64 pixels"></div><div class="preview size-16"><img src="icon-06-arc-usb.svg" alt="Arc progress ring USB at 16 pixels"></div></div><div class="legend"><span>256</span><span>64</span><span>16</span></div></div>
+      <div class="surface"><div class="surface-title"><span>Dark surface</span><span>#161616</span></div><div class="swatch dark-bg"><div class="preview size-256"><img src="icon-06-arc-usb.svg" alt="Arc progress ring USB at 256 pixels on dark"></div><div class="preview size-64"><img src="icon-06-arc-usb.svg" alt="Arc progress ring USB at 64 pixels on dark"></div><div class="preview size-16"><img src="icon-06-arc-usb.svg" alt="Arc progress ring USB at 16 pixels on dark"></div></div><div class="legend"><span>256</span><span>64</span><span>16</span></div></div>
+    </article>
+    <article class="card">
+      <div class="card-head"><div class="kicker">07</div><h2>Letter mark “I→U”</h2><p class="desc">A pure geometric monogram favors favicon clarity over literal ISO or USB imagery.</p></div>
+      <div class="surface"><div class="surface-title"><span>Light surface</span><span>#ECECEC</span></div><div class="swatch light-bg"><div class="preview size-256"><img src="icon-07-iu-mono.svg" alt="I to U monogram at 256 pixels"></div><div class="preview size-64"><img src="icon-07-iu-mono.svg" alt="I to U monogram at 64 pixels"></div><div class="preview size-16"><img src="icon-07-iu-mono.svg" alt="I to U monogram at 16 pixels"></div></div><div class="legend"><span>256</span><span>64</span><span>16</span></div></div>
+      <div class="surface"><div class="surface-title"><span>Dark surface</span><span>#161616</span></div><div class="swatch dark-bg"><div class="preview size-256"><img src="icon-07-iu-mono.svg" alt="I to U monogram at 256 pixels on dark"></div><div class="preview size-64"><img src="icon-07-iu-mono.svg" alt="I to U monogram at 64 pixels on dark"></div><div class="preview size-16"><img src="icon-07-iu-mono.svg" alt="I to U monogram at 16 pixels on dark"></div></div><div class="legend"><span>256</span><span>64</span><span>16</span></div></div>
+    </article>
+    <article class="card">
+      <div class="card-head"><div class="kicker">08</div><h2>ISO disc with Windows pane</h2><p class="desc">The source artifact leads: a blue-rimmed disc contains an abstract Windows pane center.</p></div>
+      <div class="surface"><div class="surface-title"><span>Light surface</span><span>#ECECEC</span></div><div class="swatch light-bg"><div class="preview size-256"><img src="icon-08-disc-windows.svg" alt="ISO disc with embedded Windows pane at 256 pixels"></div><div class="preview size-64"><img src="icon-08-disc-windows.svg" alt="ISO disc with embedded Windows pane at 64 pixels"></div><div class="preview size-16"><img src="icon-08-disc-windows.svg" alt="ISO disc with embedded Windows pane at 16 pixels"></div></div><div class="legend"><span>256</span><span>64</span><span>16</span></div></div>
+      <div class="surface"><div class="surface-title"><span>Dark surface</span><span>#161616</span></div><div class="swatch dark-bg"><div class="preview size-256"><img src="icon-08-disc-windows.svg" alt="ISO disc with embedded Windows pane at 256 pixels on dark"></div><div class="preview size-64"><img src="icon-08-disc-windows.svg" alt="ISO disc with embedded Windows pane at 64 pixels on dark"></div><div class="preview size-16"><img src="icon-08-disc-windows.svg" alt="ISO disc with embedded Windows pane at 16 pixels on dark"></div></div><div class="legend"><span>256</span><span>64</span><span>16</span></div></div>
+    </article>
+    <article class="card">
+      <div class="card-head"><div class="kicker">09</div><h2>Abstract container ➜ flag</h2><p class="desc">A hollow rounded container emits a small boot flag for the simplest abstract read.</p></div>
+      <div class="surface"><div class="surface-title"><span>Light surface</span><span>#ECECEC</span></div><div class="swatch light-bg"><div class="preview size-256"><img src="icon-09-container-flag.svg" alt="Abstract container to flag at 256 pixels"></div><div class="preview size-64"><img src="icon-09-container-flag.svg" alt="Abstract container to flag at 64 pixels"></div><div class="preview size-16"><img src="icon-09-container-flag.svg" alt="Abstract container to flag at 16 pixels"></div></div><div class="legend"><span>256</span><span>64</span><span>16</span></div></div>
+      <div class="surface"><div class="surface-title"><span>Dark surface</span><span>#161616</span></div><div class="swatch dark-bg"><div class="preview size-256"><img src="icon-09-container-flag.svg" alt="Abstract container to flag at 256 pixels on dark"></div><div class="preview size-64"><img src="icon-09-container-flag.svg" alt="Abstract container to flag at 64 pixels on dark"></div><div class="preview size-16"><img src="icon-09-container-flag.svg" alt="Abstract container to flag at 16 pixels on dark"></div></div><div class="legend"><span>256</span><span>64</span><span>16</span></div></div>
+    </article>
+  </section>
+</main>
+<script>
+  const root = document.documentElement;
+  const toggle = document.getElementById('themeToggle');
+  const saved = localStorage.getItem('isotousb-icon-sheet-theme');
+  if (saved) root.dataset.theme = saved;
+  function effectiveTheme() {
+    return root.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  }
+  function updateToggle() {
+    toggle.textContent = effectiveTheme() === 'dark' ? 'Use light page theme' : 'Use dark page theme';
+  }
+  toggle.addEventListener('click', () => {
+    const next = effectiveTheme() === 'dark' ? 'light' : 'dark';
+    root.dataset.theme = next;
+    localStorage.setItem('isotousb-icon-sheet-theme', next);
+    updateToggle();
+  });
+  updateToggle();
+</script>
+</body>
+</html>

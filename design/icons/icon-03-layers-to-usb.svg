@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="icon03-title icon03-desc">
+  <title id="icon03-title">Stacked layers to stick</title>
+  <desc id="icon03-desc">Three ISO file layers stream into a compact USB drive to suggest unpacking an image.</desc>
+  <defs>
+    <linearGradient id="icon03-stick" x1="165" y1="82" x2="213" y2="174" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4CC2FF"/>
+      <stop offset="1" stop-color="#0078D4"/>
+    </linearGradient>
+  </defs>
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <rect x="32" y="58" width="118" height="34" rx="12" fill="#4CC2FF"/>
+    <rect x="44" y="104" width="118" height="34" rx="12" fill="#0078D4"/>
+    <rect x="32" y="150" width="118" height="34" rx="12" fill="#0067C0"/>
+    <path d="M132 128H162" fill="none" stroke="#107C10" stroke-width="18"/>
+    <path d="M148 112L164 128L148 144" fill="none" stroke="#107C10" stroke-width="18"/>
+    <rect x="165" y="82" width="48" height="92" rx="15" fill="url(#icon03-stick)"/>
+    <rect x="208" y="101" width="24" height="54" rx="6" fill="#005A9E"/>
+    <path d="M181 104V152" fill="none" stroke="#FBFBFB" stroke-opacity="0.7" stroke-width="8"/>
+  </g>
+</svg>
