@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\IsoToUsb\IsoToUsb.csproj" />
+    <ProjectReference Include="..\IsoToUsb\IsoToUsb.csproj" />
   </ItemGroup>
 
 </Project>
