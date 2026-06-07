@@ -52,6 +52,10 @@ public class LogClassifierTests
     [DataRow("Warning: long path detected, falling back to UNC prefix.")]
     [DataRow("[CopyFiles] 5/100 fileB.man — skipped (will be split).")]
     [DataRow("Fallback FAT32 formatter selected.")]
+    [DataRow("Cancelled by user.")]
+    [DataRow("Cancelled: The build was cancelled before it finished.")]
+    [DataRow("Cancel requested — waiting for worker to stop.")]
+    [DataRow("Canceled by user.")]
     public void Real_warning_lines_classify_as_Warn(string line)
     {
         var (_, _, severity) = MainViewModel.ParseLogContent(line);

@@ -503,7 +503,7 @@ public partial class MainViewModel : ObservableObject
         RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     private static readonly Regex WarnWordRegex = new(
-        @"\b(warn|warning|warnings|warned|fallback|skipped|long\s+path|long\s+paths)\b",
+        @"\b(warn|warning|warnings|warned|fallback|skipped|long\s+path|long\s+paths|cancel|cancelled|canceled|cancelling|canceling)\b",
         RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     internal static LogSeverity ClassifySeverity(string line)
