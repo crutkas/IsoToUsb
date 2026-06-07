@@ -59,33 +59,9 @@ internal static class PipelineWorker
         using var watcherStop = new CancellationTokenSource();
 
         // Background task that listens for the parent's CANCEL command.
-        // ReadLineAsync on a connected NamedPipeClientStream returns null
-        // when the pipe is closed (parent exited or dropped its end).
-        var cancelWatcher = Task.Run(async () =>
-        {
-            try
-            {
-                while (!watcherStop.IsCancellationRequested)
-                {
-                    var line = await reader.ReadLineAsync(watcherStop.Token).ConfigureAwait(false);
-                    if (line is null)
-                    {
-                        return;
-                    }
-                    if (line.Equals(WorkerProtocol.CancelCommand, StringComparison.Ordinal))
-                    {
-                        cts.Cancel();
-                        return;
-                    }
-                }
-            }
-            catch
-            {
-                // Pipe died or watcher was stopped — treat as cancel so any
-                // in-flight pipeline aborts cleanly.
-                try { cts.Cancel(); } catch { }
-            }
-        });
+        // Extracted to WatchForCancelOrDisconnectAsync for unit testing the
+        // disconnect-cancels-CTS invariant.
+        var cancelWatcher = Task.Run(() => WatchForCancelOrDisconnectAsync(reader, cts, watcherStop.Token));
 
         try
         {
@@ -122,6 +98,44 @@ internal static class PipelineWorker
             // unwind before the using blocks tear the pipe down underneath it.
             try { cancelWatcher.Wait(TimeSpan.FromSeconds(1)); } catch { }
             try { cts.Cancel(); } catch { }
+        }
+    }
+
+    /// <summary>
+    /// Background loop that listens for the parent's CANCEL command on the
+    /// duplex pipe and ALSO treats a clean disconnect (ReadLineAsync returns
+    /// null) the same as a cancel. The null-disconnect case is the one that
+    /// matters most: if the UI process dies or is killed mid-build, the
+    /// elevated worker would otherwise keep wiping/partitioning/writing the
+    /// USB with no controlling UI. Any exception from the reader (broken
+    /// pipe, watcher-stop) is also coerced into a cancel so the in-flight
+    /// pipeline aborts cleanly.
+    /// </summary>
+    internal static async Task WatchForCancelOrDisconnectAsync(
+        TextReader reader,
+        CancellationTokenSource pipelineCts,
+        CancellationToken stopToken)
+    {
+        try
+        {
+            while (!stopToken.IsCancellationRequested)
+            {
+                var line = await reader.ReadLineAsync(stopToken).ConfigureAwait(false);
+                if (line is null)
+                {
+                    try { pipelineCts.Cancel(); } catch { }
+                    return;
+                }
+                if (line.Equals(WorkerProtocol.CancelCommand, StringComparison.Ordinal))
+                {
+                    try { pipelineCts.Cancel(); } catch { }
+                    return;
+                }
+            }
+        }
+        catch
+        {
+            try { pipelineCts.Cancel(); } catch { }
         }
     }
 
