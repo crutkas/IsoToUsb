@@ -2,6 +2,8 @@
 
 A very basic Windows-only tool that turns a Windows install ISO into a bootable USB drive — drop the ISO, pick the drive, hit **Start**.
 
+![IsoToUsb mid-build: phase rail on the left, live progress log on the right, status pill + progress bar at the bottom.](docs/screenshots/copying-progress.png)
+
 ## Status
 🚧 Functional MVP. The core pipeline (mount ➜ repartition ➜ copy ➜ split ➜ verify) is wired up and unit-tested. Live USB writes have not yet been smoke-tested by the author — try on a spare stick first.
 
