@@ -349,7 +349,13 @@ public partial class MainViewModel : ObservableObject
                 ProgressPercent = p.Percent;
             }
             CurrentOperation = $"[{p.Stage}] {p.Message}";
-            AppendLog(CurrentOperation);
+            // Intra-file byte heartbeats (~5 Hz from FileCopier) keep the
+            // bar and status pill moving, but should NOT spam the log with
+            // 30+ identical "38/967 sources\boot.wim" lines per file.
+            if (!p.IsHeartbeat)
+            {
+                AppendLog(CurrentOperation);
+            }
             UpdatePhase(p);
         });
 

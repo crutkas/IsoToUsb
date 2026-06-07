@@ -162,7 +162,8 @@ public static class ElevatedWorkerLauncher
                         case WorkerProtocol.Progress when parts.Length >= 4:
                             if (int.TryParse(parts[2], System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var pct))
                             {
-                                OnProgress(progress, new PipelineProgress(StageNames.Parse(parts[1]), pct, parts[3]));
+                                var hb = parts.Length >= 5 && parts[4] == "1";
+                                OnProgress(progress, new PipelineProgress(StageNames.Parse(parts[1]), pct, parts[3], hb));
                             }
                             break;
 

@@ -174,7 +174,8 @@ internal static class PipelineWorker
                 WorkerProtocol.Progress, "\t",
                 StageNames.From(p.Stage), "\t",
                 p.Percent.ToString(System.Globalization.CultureInfo.InvariantCulture), "\t",
-                WorkerProtocol.Sanitize(p.Message)));
+                WorkerProtocol.Sanitize(p.Message),
+                p.IsHeartbeat ? "\t1" : string.Empty));
         }
         catch
         {

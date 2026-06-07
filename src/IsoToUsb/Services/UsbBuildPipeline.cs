@@ -19,7 +19,19 @@ public enum PipelineStage
 /// Progress event from <see cref="UsbBuildPipeline"/>.
 /// <paramref name="Percent"/> may be -1 when a stage cannot report a percent.
 /// </summary>
-public sealed record PipelineProgress(PipelineStage Stage, int Percent, string Message);
+/// <summary>
+/// One progress tick from the pipeline.
+/// <para>
+/// <see cref="IsHeartbeat"/> is <c>true</c> for intra-file byte-progress
+/// updates (~5 Hz from <see cref="FileCopier"/>): the UI should advance
+/// the progress bar and the live status pill but NOT append a fresh log
+/// line. Otherwise a 400 MB boot.wim would produce 30+ identical log
+/// lines and read as if the copy were stuck. Non-heartbeat events fire
+/// once per file boundary and per stage transition — those are the
+/// log-worthy ticks.
+/// </para>
+/// </summary>
+public sealed record PipelineProgress(PipelineStage Stage, int Percent, string Message, bool IsHeartbeat = false);
 
 /// <summary>
 /// Orchestrates the end-to-end "ISO → bootable USB" build using the
@@ -83,13 +95,28 @@ public sealed class UsbBuildPipeline
         cancellationToken.ThrowIfCancellationRequested();
         progress?.Report(new PipelineProgress(PipelineStage.CopyFiles, 0, "Copying ISO contents..."));
         var copier = new FileCopier { SkipPredicate = (file, rel) => FileCopier.ShouldSplitForFat32(file, rel) };
+        string? lastLoggedCopyFile = null;
         var copyProgress = new Progress<CopyProgress>(p =>
         {
             var pct = p.BytesTotal > 0 ? (int)(p.BytesDone * 100 / p.BytesTotal) : 0;
             // 1-based "currently working on file X of N" — much friendlier
             // than "0/N done" while the first file is mid-stream.
             var current = Math.Min(p.FilesDone + 1, p.FilesTotal);
-            progress?.Report(new PipelineProgress(PipelineStage.CopyFiles, pct, $"{current}/{p.FilesTotal} {p.CurrentRelativePath}"));
+            // FileCopier fires ~5 Hz during each file's byte stream. Only
+            // the FIRST report we see for a given file goes to the log;
+            // all subsequent reports for the same file are heartbeats that
+            // advance the progress bar and status pill but don't spam the
+            // log with 30+ identical "38/967 sources\boot.wim" lines.
+            var isHeartbeat = lastLoggedCopyFile == p.CurrentRelativePath;
+            if (!isHeartbeat)
+            {
+                lastLoggedCopyFile = p.CurrentRelativePath;
+            }
+            progress?.Report(new PipelineProgress(
+                PipelineStage.CopyFiles,
+                pct,
+                $"{current}/{p.FilesTotal} {p.CurrentRelativePath}",
+                isHeartbeat));
         });
         var skipped = await copier.CopyAsync(mounted.MountRoot, usbRoot, copyProgress, cancellationToken).ConfigureAwait(false);
 
@@ -160,6 +187,7 @@ public sealed class UsbBuildPipeline
                         50,
                         $"Copying split chunks to USB..."));
                     var swmCopier = new FileCopier();
+                    string? lastLoggedSwm = null;
                     var swmCopyProgress = new Progress<CopyProgress>(p =>
                     {
                         if (p.BytesTotal <= 0)
@@ -175,10 +203,19 @@ public sealed class UsbBuildPipeline
                         var current = Math.Min(p.FilesDone + 1, p.FilesTotal);
                         var doneMb = p.BytesDone / (1024 * 1024);
                         var totalMb = p.BytesTotal / (1024 * 1024);
+                        // Same heartbeat-vs-log split as CopyFiles: one log
+                        // line per chunk file; intra-file ticks update the
+                        // status pill / bar but stay out of the log.
+                        var isHeartbeat = lastLoggedSwm == p.CurrentRelativePath;
+                        if (!isHeartbeat)
+                        {
+                            lastLoggedSwm = p.CurrentRelativePath;
+                        }
                         progress?.Report(new PipelineProgress(
                             PipelineStage.SplitInstallWim,
                             overallPct,
-                            $"copy {current}/{p.FilesTotal} {p.CurrentRelativePath} · {doneMb}/{totalMb} MB"));
+                            $"copy {current}/{p.FilesTotal} {p.CurrentRelativePath} · {doneMb}/{totalMb} MB",
+                            isHeartbeat));
                     });
                     Directory.CreateDirectory(finalDestDir);
                     await swmCopier
