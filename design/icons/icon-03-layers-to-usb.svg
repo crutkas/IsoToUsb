@@ -1,20 +1,37 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="icon03-title icon03-desc">
-  <title id="icon03-title">Stacked layers to stick</title>
-  <desc id="icon03-desc">Three ISO file layers stream into a compact USB drive to suggest unpacking an image.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="t3 d3">
+  <title id="t3">ISO disc launcher</title>
+  <desc id="d3">A glossy optical disc with a small USB drive launching from one side — literal ISO-to-USB conversion.</desc>
   <defs>
-    <linearGradient id="icon03-stick" x1="165" y1="82" x2="213" y2="174" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#4CC2FF"/>
-      <stop offset="1" stop-color="#0078D4"/>
+    <radialGradient id="b3" cx="86" cy="92" r="130" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#5BC0FF"/><stop offset=".55" stop-color="#0F8FE5"/><stop offset="1" stop-color="#004B92"/>
+    </radialGradient>
+    <linearGradient id="r3" x1="20" y1="68" x2="200" y2="68" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0"/><stop offset=".5" stop-color="#FFFFFF" stop-opacity=".55"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
     </linearGradient>
+    <linearGradient id="u3" x1="168" y1="132" x2="226" y2="220" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#5BC0FF"/><stop offset="1" stop-color="#0067C0"/>
+    </linearGradient>
+    <linearGradient id="mu3" x1="180" y1="206" x2="220" y2="224" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#EAEEF2"/><stop offset="1" stop-color="#5A6068"/>
+    </linearGradient>
+    <filter id="s3" x="-25%" y="-25%" width="150%" height="150%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3"/><feOffset dy="5"/>
+      <feComponentTransfer><feFuncA type="linear" slope=".32"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
   </defs>
-  <g stroke-linecap="round" stroke-linejoin="round">
-    <rect x="32" y="58" width="118" height="34" rx="12" fill="#4CC2FF"/>
-    <rect x="44" y="104" width="118" height="34" rx="12" fill="#0078D4"/>
-    <rect x="32" y="150" width="118" height="34" rx="12" fill="#0067C0"/>
-    <path d="M132 128H162" fill="none" stroke="#107C10" stroke-width="18"/>
-    <path d="M148 112L164 128L148 144" fill="none" stroke="#107C10" stroke-width="18"/>
-    <rect x="165" y="82" width="48" height="92" rx="15" fill="url(#icon03-stick)"/>
-    <rect x="208" y="101" width="24" height="54" rx="6" fill="#005A9E"/>
-    <path d="M181 104V152" fill="none" stroke="#FBFBFB" stroke-opacity="0.7" stroke-width="8"/>
+  <g filter="url(#s3)">
+    <circle cx="100" cy="128" r="96" fill="url(#b3)"/>
+    <ellipse cx="100" cy="72" rx="78" ry="14" fill="url(#r3)"/>
+    <circle cx="100" cy="128" r="22" fill="#0A1230"/>
+    <circle cx="100" cy="128" r="8" fill="#1A2440"/>
+    <circle cx="100" cy="128" r="96" fill="none" stroke="#001E48" stroke-opacity=".30" stroke-width="2"/>
+    <g>
+      <rect x="174" y="132" width="46" height="76" rx="10" fill="url(#u3)"/>
+      <rect x="182" y="208" width="30" height="16" rx="3" fill="url(#mu3)"/>
+      <rect x="186" y="142" width="22" height="5" rx="1" fill="#FFFFFF" fill-opacity=".55"/>
+      <rect x="186" y="154" width="22" height="5" rx="1" fill="#FFFFFF" fill-opacity=".55"/>
+      <rect x="174" y="132" width="46" height="76" rx="10" fill="none" stroke="#001E48" stroke-opacity=".25" stroke-width="2"/>
+    </g>
   </g>
 </svg>

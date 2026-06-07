@@ -1,16 +1,27 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="icon07-title icon07-desc">
-  <title id="icon07-title">I to U monogram</title>
-  <desc id="icon07-desc">A geometric I-to-U arrow monogram makes a compact favicon-style mark for IsoToUsb.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="t7 d7">
+  <title id="t7">Windows ISO disc</title>
+  <desc id="d7">A glossy optical disc with the four-color Microsoft pane mark centered on a white face.</desc>
   <defs>
-    <linearGradient id="icon07-blue" x1="28" y1="44" x2="242" y2="210" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#4CC2FF"/>
-      <stop offset="1" stop-color="#0078D4"/>
+    <radialGradient id="b7" cx="100" cy="100" r="140" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#5BC0FF"/><stop offset=".55" stop-color="#0F8FE5"/><stop offset="1" stop-color="#004B92"/>
+    </radialGradient>
+    <linearGradient id="r7" x1="40" y1="60" x2="216" y2="60" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0"/><stop offset=".5" stop-color="#FFFFFF" stop-opacity=".55"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
     </linearGradient>
+    <filter id="s7" x="-25%" y="-25%" width="150%" height="150%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3"/><feOffset dy="5"/>
+      <feComponentTransfer><feFuncA type="linear" slope=".32"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
   </defs>
-  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M42 58H72M57 58V198M42 198H72" stroke="url(#icon07-blue)" stroke-width="28"/>
-    <path d="M154 66V154C154 184 171 202 194 202C217 202 228 184 228 154V66" stroke="url(#icon07-blue)" stroke-width="28"/>
-    <path d="M84 128H132" stroke="#107C10" stroke-width="20"/>
-    <path d="M121 106L143 128L121 150" stroke="#107C10" stroke-width="20"/>
+  <g filter="url(#s7)">
+    <circle cx="128" cy="128" r="104" fill="url(#b7)"/>
+    <ellipse cx="128" cy="70" rx="84" ry="14" fill="url(#r7)"/>
+    <rect x="86" y="86" width="84" height="84" rx="14" fill="#FFFFFF"/>
+    <rect x="92" y="92" width="36" height="36" rx="4" fill="#F25022"/>
+    <rect x="132" y="92" width="36" height="36" rx="4" fill="#7FBA00"/>
+    <rect x="92" y="132" width="36" height="36" rx="4" fill="#00A4EF"/>
+    <rect x="132" y="132" width="36" height="36" rx="4" fill="#FFB900"/>
+    <circle cx="128" cy="128" r="104" fill="none" stroke="#001E48" stroke-opacity=".30" stroke-width="2"/>
   </g>
 </svg>

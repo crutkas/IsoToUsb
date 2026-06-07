@@ -1,18 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="icon06-title icon06-desc">
-  <title id="icon06-title">Arc progress ring USB</title>
-  <desc id="icon06-desc">A USB stick sits inside a rounded progress arc with a green completion node.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="t6 d6">
+  <title id="t6">U monogram</title>
+  <desc id="d6">A glossy crystalline U letterform with a cyan inner highlight — favicon-style mark for IsoToUsb.</desc>
   <defs>
-    <linearGradient id="icon06-stick" x1="84" y1="45" x2="172" y2="186" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#4CC2FF"/>
-      <stop offset="1" stop-color="#0078D4"/>
+    <linearGradient id="b6" x1="40" y1="40" x2="220" y2="220" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#5BC0FF"/><stop offset=".55" stop-color="#0F8FE5"/><stop offset="1" stop-color="#004B92"/>
     </linearGradient>
+    <linearGradient id="h6" x1="76" y1="60" x2="76" y2="180" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity=".85"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="s6" x="-25%" y="-25%" width="150%" height="150%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3"/><feOffset dy="5"/>
+      <feComponentTransfer><feFuncA type="linear" slope=".32"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
   </defs>
-  <g stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="128" cy="128" r="91" fill="none" stroke="#0078D4" stroke-opacity="0.14" stroke-width="18"/>
-    <path d="M200 188A92 92 0 1 1 195 62" fill="none" stroke="#0078D4" stroke-width="18"/>
-    <rect x="102" y="45" width="52" height="49" rx="10" fill="#005A9E"/>
-    <rect x="84" y="86" width="88" height="100" rx="24" fill="url(#icon06-stick)"/>
-    <path d="M105 125H151" fill="none" stroke="#FBFBFB" stroke-opacity="0.72" stroke-width="11"/>
-    <circle cx="200" cy="188" r="17" fill="#107C10" stroke="#FBFBFB" stroke-width="8"/>
+  <g filter="url(#s6)">
+    <path d="M52 44V148C52 188 86 218 128 218C170 218 204 188 204 148V44"
+          fill="none" stroke="url(#b6)" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M74 58V148C74 178 98 198 128 198"
+          fill="none" stroke="url(#h6)" stroke-width="10" stroke-linecap="round"/>
   </g>
 </svg>

@@ -1,19 +1,34 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="icon09-title icon09-desc">
-  <title id="icon09-title">Abstract container to flag</title>
-  <desc id="icon09-desc">A hollow ISO container emits a green boot flag for the most minimal concept direction.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="t9 d9">
+  <title id="t9">Verified USB</title>
+  <desc id="d9">A vertical USB drive with a white checkmark in an emerald badge — verified bootable media.</desc>
   <defs>
-    <linearGradient id="icon09-blue" x1="43" y1="54" x2="169" y2="180" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#4CC2FF"/>
-      <stop offset="1" stop-color="#0078D4"/>
+    <linearGradient id="b9" x1="74" y1="34" x2="184" y2="212" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#5BC0FF"/><stop offset=".5" stop-color="#0F8FE5"/><stop offset="1" stop-color="#004B92"/>
     </linearGradient>
-    <linearGradient id="icon09-flag" x1="164" y1="76" x2="218" y2="144" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#6CCB5F"/>
-      <stop offset="1" stop-color="#107C10"/>
+    <linearGradient id="g9" x1="128" y1="36" x2="128" y2="120" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity=".55"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
     </linearGradient>
+    <linearGradient id="m9" x1="94" y1="212" x2="162" y2="244" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#EAEEF2"/><stop offset=".5" stop-color="#A0A7B0"/><stop offset="1" stop-color="#5A6068"/>
+    </linearGradient>
+    <radialGradient id="chk9" cx="128" cy="138" r="50" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7DD957"/><stop offset="1" stop-color="#0E6B0E"/>
+    </radialGradient>
+    <filter id="s9" x="-25%" y="-25%" width="150%" height="150%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3"/><feOffset dy="5"/>
+      <feComponentTransfer><feFuncA type="linear" slope=".32"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
   </defs>
-  <g stroke-linecap="round" stroke-linejoin="round">
-    <rect x="43" y="54" width="126" height="126" rx="32" fill="none" stroke="url(#icon09-blue)" stroke-width="24"/>
-    <path d="M164 86V184" fill="none" stroke="#107C10" stroke-width="16"/>
-    <path d="M168 83C184 85 197 73 218 84V139C197 128 184 141 168 139Z" fill="url(#icon09-flag)"/>
+  <g filter="url(#s9)">
+    <rect x="74" y="34" width="108" height="182" rx="22" fill="url(#b9)"/>
+    <rect x="84" y="44" width="88" height="62" rx="14" fill="url(#g9)"/>
+    <rect x="94" y="216" width="68" height="28" rx="6" fill="url(#m9)"/>
+    <rect x="106" y="222" width="14" height="16" rx="2" fill="#D7A02A"/>
+    <rect x="136" y="222" width="14" height="16" rx="2" fill="#D7A02A"/>
+    <circle cx="128" cy="138" r="44" fill="url(#chk9)"/>
+    <circle cx="128" cy="138" r="44" fill="none" stroke="#FFFFFF" stroke-opacity=".35" stroke-width="2"/>
+    <path d="M108 140L122 156L150 124" fill="none" stroke="#FFFFFF" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="74" y="34" width="108" height="182" rx="22" fill="none" stroke="#001E48" stroke-opacity=".25" stroke-width="2"/>
   </g>
 </svg>
