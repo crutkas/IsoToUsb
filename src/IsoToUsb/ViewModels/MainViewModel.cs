@@ -551,9 +551,16 @@ public partial class MainViewModel : ObservableObject
                 Phases[i].Status = PhaseStatus.Done;
             }
         }
+        // The current stage stays Running across every tick. We do NOT flip
+        // it to Done on percent==100 because multi-WIM splits emit 100%
+        // repeatedly (once per chunk) and the next chunk restarts at 0% —
+        // locking to Done after the first 100% would freeze the rail node
+        // while the worker is still actively splitting more WIMs. The phase
+        // is promoted to Done by the cascade above when the NEXT stage's
+        // tick arrives, and by FinalizePhases() on successful completion.
         if (target.Status != PhaseStatus.Done)
         {
-            target.Status = p.Percent >= 100 ? PhaseStatus.Done : PhaseStatus.Running;
+            target.Status = PhaseStatus.Running;
         }
         target.Detail = p.Message;
     }
