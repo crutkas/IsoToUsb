@@ -132,17 +132,9 @@ public sealed class FileCopier
             // doesn't match the source. A short file here means the OS lost
             // data in flight (USB controller, FAT32 cache, AV, etc.). We'd
             // rather hard-fail the build than silently ship a corrupt USB
-            // that fails Windows Setup mid-image-apply.
-            var actualBytes = new FileInfo(dest).Length;
-            if (actualBytes != expectedBytes)
-            {
-                throw new IOException(
-                    $"Copy of '{rel}' produced {actualBytes:N0} bytes on the destination " +
-                    $"but the source is {expectedBytes:N0} bytes. The destination drive may " +
-                    $"have run out of space, been ejected mid-write, or returned a write " +
-                    $"error that the OS silently truncated. Refusing to continue with a " +
-                    $"corrupted file in place.");
-            }
+            // that fails Windows Setup mid-image-apply. Extracted to an
+            // internal helper so unit tests can prove the throw fires.
+            AssertCopiedSizeMatches(dest, expectedBytes, rel);
 
             filesDone++;
             // Always emit a per-file completion event so the count + final
@@ -188,4 +180,29 @@ public sealed class FileCopier
     /// </summary>
     public static bool ShouldSplitForFat32(FileInfo file, string relativePath)
         => ClassifyForFat32(file, relativePath) == Fat32FileAction.SplitWithDism;
+
+    /// <summary>
+    /// Post-copy size assertion. Re-stats <paramref name="destPath"/> and
+    /// throws <see cref="IOException"/> if its byte count doesn't match
+    /// <paramref name="expectedBytes"/>. The dest path is treated as
+    /// authoritative — a short file indicates the OS / removable-media
+    /// write cache silently dropped data, which on a Windows install USB
+    /// would surface as Setup 0x8007000D mid-image-apply. Exposed as a
+    /// static helper so unit tests can pin the throw behavior without
+    /// having to simulate FAT32 truncation in-process.
+    /// </summary>
+    internal static void AssertCopiedSizeMatches(string destPath, long expectedBytes, string relativePathForMessage)
+    {
+        var actualBytes = new FileInfo(destPath).Length;
+        if (actualBytes == expectedBytes)
+        {
+            return;
+        }
+        throw new IOException(
+            $"Copy of '{relativePathForMessage}' produced {actualBytes:N0} bytes on the destination " +
+            $"but the source is {expectedBytes:N0} bytes. The destination drive may " +
+            $"have run out of space, been ejected mid-write, or returned a write " +
+            $"error that the OS silently truncated. Refusing to continue with a " +
+            $"corrupted file in place.");
+    }
 }

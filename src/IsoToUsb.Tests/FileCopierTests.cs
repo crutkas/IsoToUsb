@@ -252,4 +252,68 @@ public class FileCopierTests
             dst.Delete(recursive: true);
         }
     }
+
+    [TestMethod]
+    public void AssertCopiedSizeMatches_NoOp_When_Sizes_Match()
+    {
+        // The size assertion is the single safety net that would have
+        // surfaced the install2.swm truncation as a hard error instead of
+        // a green pipeline + corrupt USB. Pin both arms (match + mismatch)
+        // so the throw cannot be regressed away by a future "optimization".
+        var path = Path.Combine(Path.GetTempPath(), $"fcasrt_{Guid.NewGuid():N}.bin");
+        File.WriteAllBytes(path, new byte[] { 1, 2, 3, 4, 5 });
+        try
+        {
+            FileCopier.AssertCopiedSizeMatches(path, expectedBytes: 5, relativePathForMessage: "sources/install.swm");
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [TestMethod]
+    public void AssertCopiedSizeMatches_Throws_With_Diagnostic_When_Truncated()
+    {
+        // Regression: real install2.swm truncation from 3.55 GiB to 1.17
+        // GiB landed silently because there was no post-write check at
+        // all. This test pins that the helper throws IOException and that
+        // the message names the file + both byte counts so the failure is
+        // diagnosable without a debugger.
+        var path = Path.Combine(Path.GetTempPath(), $"fcasrt_{Guid.NewGuid():N}.bin");
+        File.WriteAllBytes(path, new byte[1168]); // simulating the observed truncation
+        try
+        {
+            var ex = Assert.Throws<IOException>(() =>
+                FileCopier.AssertCopiedSizeMatches(path, expectedBytes: 3552, relativePathForMessage: "sources/install2.swm"));
+            StringAssert.Contains(ex.Message, "install2.swm");
+            StringAssert.Contains(ex.Message, "1,168");
+            StringAssert.Contains(ex.Message, "3,552");
+            StringAssert.Contains(ex.Message, "Refusing to continue");
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [TestMethod]
+    public void AssertCopiedSizeMatches_Throws_When_Destination_Grew_Past_Source()
+    {
+        // The check is symmetric on purpose: if dest > src, something
+        // wrote extra bytes (rare, but possible if a stale file wasn't
+        // truncated to zero before the new copy started). Don't silently
+        // ship that either.
+        var path = Path.Combine(Path.GetTempPath(), $"fcasrt_{Guid.NewGuid():N}.bin");
+        File.WriteAllBytes(path, new byte[100]);
+        try
+        {
+            Assert.Throws<IOException>(() =>
+                FileCopier.AssertCopiedSizeMatches(path, expectedBytes: 50, relativePathForMessage: "x"));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
 }
