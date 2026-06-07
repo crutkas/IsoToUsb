@@ -306,6 +306,8 @@ public sealed class PhaseStatusToRailBrushConverter : IValueConverter
         PhaseStatus.Running => new SolidColorBrush(Color.FromArgb(0x22, 0x00, 0x78, 0xD4)),
         PhaseStatus.Done => new SolidColorBrush(Color.FromArgb(0x1A, 0x10, 0x80, 0x3C)),
         PhaseStatus.Failed => new SolidColorBrush(Color.FromArgb(0x1F, 0xC4, 0x2B, 0x1C)),
+        // Cancelled mirrors the bottom Cancelled status pill (Warning/orange).
+        PhaseStatus.Cancelled => new SolidColorBrush(Color.FromArgb(0x22, 0xC4, 0x6E, 0x00)),
         // Pending matches design's .rail-node default: background = var(--card)
         // (an opaque-ish card fill that reads as "ready", not "disabled"). The
         // earlier grey-tinted translucent fill made every waiting node look
@@ -318,6 +320,7 @@ public sealed class PhaseStatusToRailBrushConverter : IValueConverter
         PhaseStatus.Running => new SolidColorBrush(Color.FromArgb(0xC0, 0x00, 0x78, 0xD4)),
         PhaseStatus.Done => new SolidColorBrush(Color.FromArgb(0x90, 0x10, 0x80, 0x3C)),
         PhaseStatus.Failed => new SolidColorBrush(Color.FromArgb(0xA0, 0xC4, 0x2B, 0x1C)),
+        PhaseStatus.Cancelled => new SolidColorBrush(Color.FromArgb(0xA0, 0xC4, 0x6E, 0x00)),
         PhaseStatus.Skipped => new SolidColorBrush(Color.FromArgb(0x40, 0x80, 0x80, 0x80)),
         // Matches design's --border-strong (rgba(0,0,0,0.10) light /
         // rgba(255,255,255,0.14) dark). A neutral mid-grey with ~40% alpha
@@ -330,6 +333,7 @@ public sealed class PhaseStatusToRailBrushConverter : IValueConverter
         PhaseStatus.Running => new SolidColorBrush(Color.FromArgb(0xFF, 0x4C, 0xC2, 0xFF)),
         PhaseStatus.Done => new SolidColorBrush(Color.FromArgb(0xFF, 0x6C, 0xCB, 0x5F)),
         PhaseStatus.Failed => new SolidColorBrush(Color.FromArgb(0xFF, 0xFF, 0x99, 0x9A)),
+        PhaseStatus.Cancelled => new SolidColorBrush(Color.FromArgb(0xFF, 0xC4, 0x6E, 0x00)),
         PhaseStatus.Skipped => new SolidColorBrush(Color.FromArgb(0x80, 0xBB, 0xBB, 0xBB)),
         // Matches design's --fg3 (#8A8A8A light / #909090 dark) — an opaque
         // medium grey that reads as "muted but not disabled".
@@ -341,6 +345,7 @@ public sealed class PhaseStatusToRailBrushConverter : IValueConverter
         PhaseStatus.Running => new SolidColorBrush(Color.FromArgb(0xFF, 0x4C, 0xC2, 0xFF)),
         PhaseStatus.Done => new SolidColorBrush(Color.FromArgb(0xFF, 0x6C, 0xCB, 0x5F)),
         PhaseStatus.Failed => new SolidColorBrush(Color.FromArgb(0xFF, 0xFF, 0x99, 0x9A)),
+        PhaseStatus.Cancelled => new SolidColorBrush(Color.FromArgb(0xFF, 0xC4, 0x6E, 0x00)),
         PhaseStatus.Skipped => new SolidColorBrush(Color.FromArgb(0x80, 0xBB, 0xBB, 0xBB)),
         _ => new SolidColorBrush(Color.FromArgb(0xFF, 0x8A, 0x8A, 0x8A)),
     };

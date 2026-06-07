@@ -372,6 +372,7 @@ public partial class MainViewModel : ObservableObject
                 ResultTitle = "Cancelled";
                 Result = "The build was cancelled before it finished. The USB drive may be in an inconsistent state.";
                 ResultSeverity = InfoBarSeverity.Warning;
+                MarkRunningPhaseCancelled();
                 MarkRemainingPhases(PhaseStatus.Skipped);
             }
             else if (outcome.Success)
@@ -401,6 +402,7 @@ public partial class MainViewModel : ObservableObject
             ResultTitle = "Cancelled";
             Result = "Cancelled by user.";
             ResultSeverity = InfoBarSeverity.Warning;
+            MarkRunningPhaseCancelled();
             MarkRemainingPhases(PhaseStatus.Skipped);
             AppendLog("Cancelled by user.");
         }
@@ -591,17 +593,36 @@ public partial class MainViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Marks every still-Pending phase with the given status, and also demotes the
-    /// currently-Running phase (if any) to the same status. Used on cancel to stop
-    /// the active phase's running glow + progress ring. The failure paths call
-    /// <see cref="MarkRunningPhaseFailed"/> first, so the Running phase has already
-    /// transitioned to Failed by the time this method runs in those paths.
+    /// Marks the currently-Running phase (if any) as Cancelled. Used on the
+    /// cancel paths so the in-flight phase gets the orange "Cancelled" rail
+    /// styling that mirrors the bottom Cancelled status pill, while pending
+    /// phases later get the neutral grey Skipped treatment via
+    /// <see cref="MarkRemainingPhases"/>.
+    /// </summary>
+    private void MarkRunningPhaseCancelled()
+    {
+        foreach (var phase in Phases)
+        {
+            if (phase.Status == PhaseStatus.Running)
+            {
+                phase.Status = PhaseStatus.Cancelled;
+                return;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Marks every still-Pending phase with the given status (Skipped on
+    /// cancel/fail). The currently-Running phase, if any, must be handled
+    /// separately by the caller (e.g. <see cref="MarkRunningPhaseFailed"/>
+    /// or <see cref="MarkRunningPhaseCancelled"/>) so its visual treatment
+    /// can differ from the not-yet-reached phases.
     /// </summary>
     private void MarkRemainingPhases(PhaseStatus status)
     {
         foreach (var phase in Phases)
         {
-            if (phase.Status == PhaseStatus.Pending || phase.Status == PhaseStatus.Running)
+            if (phase.Status == PhaseStatus.Pending)
             {
                 phase.Status = status;
             }

@@ -10,6 +10,7 @@ public enum PhaseStatus
     Done,
     Skipped,
     Failed,
+    Cancelled,
 }
 
 /// <summary>
@@ -61,11 +62,12 @@ public partial class PhaseItem : ObservableObject
     /// <summary>Segoe Fluent glyph that represents the current status.</summary>
     public string Glyph => Status switch
     {
-        PhaseStatus.Pending => "\uEA3A",  // empty circle
-        PhaseStatus.Done => "\uE73E",     // checkmark
-        PhaseStatus.Skipped => "\uE738",  // minus / dash
-        PhaseStatus.Failed => "\uE894",   // cross
-        _ => string.Empty,                 // Running uses ProgressRing instead
+        PhaseStatus.Pending => "\uEA3A",   // empty circle
+        PhaseStatus.Done => "\uE73E",      // checkmark
+        PhaseStatus.Skipped => "\uE738",   // minus / dash
+        PhaseStatus.Failed => "\uE894",    // cross
+        PhaseStatus.Cancelled => "\uE711", // cancel / X-in-circle
+        _ => string.Empty,                  // Running uses ProgressRing instead
     };
 
     /// <summary>True while this phase is actively running.</summary>
