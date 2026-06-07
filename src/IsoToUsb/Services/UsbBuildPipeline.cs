@@ -103,8 +103,7 @@ public sealed class UsbBuildPipeline
         cancellationToken.ThrowIfCancellationRequested();
         progress?.Report(new PipelineProgress(PipelineStage.CopyFiles, 0, "Copying ISO contents..."));
         var copier = new FileCopier { SkipPredicate = (file, rel) => FileCopier.ShouldSplitForFat32(file, rel) };
-        string? lastLoggedCopyFile = null;
-        long lastLoggedCopyBytes = 0;
+        var copyGate = new HeartbeatGate(LogByteGate);
         var copyProgress = new Progress<CopyProgress>(p =>
         {
             var pct = p.BytesTotal > 0 ? (int)(p.BytesDone * 100 / p.BytesTotal) : 0;
@@ -120,18 +119,10 @@ public sealed class UsbBuildPipeline
             // files get exactly one log line; multi-GB SWMs get ~17 motion
             // lines per 4 GB chunk so the user can see real progress in the
             // log too (the previous behavior left install.swm stuck on one
-            // log line for 60+ seconds).
-            var fileChanged = lastLoggedCopyFile != p.CurrentRelativePath;
-            if (fileChanged)
-            {
-                lastLoggedCopyFile = p.CurrentRelativePath;
-                lastLoggedCopyBytes = 0;
-            }
-            var isHeartbeat = !fileChanged && (p.BytesDone - lastLoggedCopyBytes) < LogByteGate;
-            if (!isHeartbeat)
-            {
-                lastLoggedCopyBytes = p.BytesDone;
-            }
+            // log line for 60+ seconds). Gate state is locked because
+            // Progress<T> dispatches to thread-pool threads without a sync
+            // context in the worker process.
+            var isHeartbeat = copyGate.ShouldHeartbeat(p.CurrentRelativePath, p.BytesDone);
             progress?.Report(new PipelineProgress(
                 PipelineStage.CopyFiles,
                 pct,
@@ -207,8 +198,7 @@ public sealed class UsbBuildPipeline
                         50,
                         $"Copying split chunks to USB..."));
                     var swmCopier = new FileCopier();
-                    string? lastLoggedSwm = null;
-                    long lastLoggedSwmBytes = 0;
+                    var swmGate = new HeartbeatGate(LogByteGate);
                     var swmCopyProgress = new Progress<CopyProgress>(p =>
                     {
                         if (p.BytesTotal <= 0)
@@ -228,17 +218,9 @@ public sealed class UsbBuildPipeline
                         // boundary plus one every ~256 MiB so a 6.86 GB
                         // install.swm shows ~25 motion lines instead of a
                         // single stuck "1/6863 MB" line for 60+ seconds.
-                        var fileChanged = lastLoggedSwm != p.CurrentRelativePath;
-                        if (fileChanged)
-                        {
-                            lastLoggedSwm = p.CurrentRelativePath;
-                            lastLoggedSwmBytes = 0;
-                        }
-                        var isHeartbeat = !fileChanged && (p.BytesDone - lastLoggedSwmBytes) < LogByteGate;
-                        if (!isHeartbeat)
-                        {
-                            lastLoggedSwmBytes = p.BytesDone;
-                        }
+                        // HeartbeatGate locks gate state across thread-pool
+                        // callbacks (no sync context in the worker process).
+                        var isHeartbeat = swmGate.ShouldHeartbeat(p.CurrentRelativePath, p.BytesDone);
                         progress?.Report(new PipelineProgress(
                             PipelineStage.SplitInstallWim,
                             overallPct,
@@ -282,6 +264,44 @@ public sealed class UsbBuildPipeline
     }
 
     private readonly record struct RejectedFile(string RelativePath, long SizeBytes);
+
+    /// <summary>
+    /// Decides whether a per-byte progress tick is a noisy heartbeat (only
+    /// drives the bar) or a milestone the log should record. Logs the
+    /// first tick for each new file PLUS one tick every <c>byteGate</c>
+    /// bytes within the same file. Thread-safe because Progress&lt;T&gt;
+    /// in the worker process (no SynchronizationContext) dispatches to
+    /// arbitrary thread-pool threads and the gate's <c>_lastFile</c> /
+    /// <c>_lastBytes</c> would otherwise race.
+    /// </summary>
+    internal sealed class HeartbeatGate
+    {
+        private readonly object _lock = new();
+        private readonly long _byteGate;
+        private string? _lastFile;
+        private long _lastBytes;
+
+        public HeartbeatGate(long byteGate) => _byteGate = byteGate;
+
+        public bool ShouldHeartbeat(string currentFile, long bytesDone)
+        {
+            lock (_lock)
+            {
+                var fileChanged = _lastFile != currentFile;
+                if (fileChanged)
+                {
+                    _lastFile = currentFile;
+                    _lastBytes = 0;
+                }
+                var isHeartbeat = !fileChanged && (bytesDone - _lastBytes) < _byteGate;
+                if (!isHeartbeat)
+                {
+                    _lastBytes = bytesDone;
+                }
+                return isHeartbeat;
+            }
+        }
+    }
 
     /// <summary>
     /// Best-effort recursive delete with backoff. AV scanners and the
