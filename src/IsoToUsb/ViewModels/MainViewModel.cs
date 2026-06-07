@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Text.RegularExpressions;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using IsoToUsb.Services;
@@ -450,11 +451,15 @@ public partial class MainViewModel : ObservableObject
 
     // Split "validate ISO checksum OK · 5.42 GB" into ("validate", " ISO checksum OK · 5.42 GB", Action).
     // Heuristic severity:
-    //   - contains "fail|error|exception|abort"  -> Error
-    //   - contains "warn|fallback|skipped|long path" -> Warn
+    //   - whole-word "fail/failed/failure/error/exception/abort" -> Error
+    //   - whole-word "warn/warning/fallback/skipped/long path"   -> Warn
     //   - otherwise -> Action (so the leading verb pops in green)
+    // Word boundaries matter: an earlier substring-based version turned
+    // "[CopyFiles] N/M sources\replacementmanifests\failovercluster-*.man"
+    // red because "failover" contains "fail". \b around the keyword lists
+    // fixes that without losing real "Failed to copy X" detection.
     // Lines without a leading word fall back to Info (no coloured keyword).
-    private static (string keyword, string rest, LogSeverity severity) ParseLogContent(string line)
+    internal static (string keyword, string rest, LogSeverity severity) ParseLogContent(string line)
     {
         if (string.IsNullOrEmpty(line))
         {
@@ -474,15 +479,21 @@ public partial class MainViewModel : ObservableObject
         return (keyword, rest, sevHint);
     }
 
-    private static LogSeverity ClassifySeverity(string line)
+    private static readonly Regex ErrorWordRegex = new(
+        @"\b(fail|failed|failing|failure|failures|error|errors|exception|exceptions|abort|aborted|aborting)\b",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    private static readonly Regex WarnWordRegex = new(
+        @"\b(warn|warning|warnings|warned|fallback|skipped|long\s+path|long\s+paths)\b",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    internal static LogSeverity ClassifySeverity(string line)
     {
-        // Lower-cased contains-check is good enough for keyword colouring.
-        var l = line.ToLowerInvariant();
-        if (l.Contains("fail") || l.Contains("error") || l.Contains("exception") || l.Contains("abort"))
+        if (ErrorWordRegex.IsMatch(line))
         {
             return LogSeverity.Error;
         }
-        if (l.Contains("warn") || l.Contains("fallback") || l.Contains("skipped") || l.Contains("long path"))
+        if (WarnWordRegex.IsMatch(line))
         {
             return LogSeverity.Warn;
         }
