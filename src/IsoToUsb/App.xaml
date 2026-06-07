@@ -11,7 +11,12 @@
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
             </ResourceDictionary.MergedDictionaries>
             <conv:NotConverter x:Key="NotConverter" />
+            <conv:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+            <conv:InvertedBoolToVisibilityConverter x:Key="InvertedBoolToVisibilityConverter" />
             <conv:NullToCollapsedConverter x:Key="NullToCollapsedConverter" />
+            <conv:PhaseStatusToBrushConverter x:Key="PhaseStatusToBrushConverter" />
+            <conv:PhaseStatusToTitleBrushConverter x:Key="PhaseStatusToTitleBrushConverter" />
+            <conv:StatusKindToBrushConverter x:Key="StatusKindToBrushConverter" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

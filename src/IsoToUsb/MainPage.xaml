@@ -5,150 +5,457 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="using:IsoToUsb"
+    xmlns:viewmodels="using:IsoToUsb.ViewModels"
     xmlns:services="using:IsoToUsb.Services"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    mc:Ignorable="d">
+    mc:Ignorable="d"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
-    <Grid Padding="24" RowSpacing="12">
+    <!-- Concept C · Workshop — pro three-pane:
+         Row 0 (*):    fixed 3-column grid (280 / 1* / 300):
+                         left  = inputs (drop target, USB combo, help info)
+                         center = live log (first-class citizen, never hidden)
+                         right = pipeline phase list
+         Row 1 (72 px): bottom action bar — status pill, progress, action buttons,
+                        plus a status caption row underneath (elevation, current op, version).
+         Every cell keeps its footprint between Idle / Building / Done —
+         only the inner content of each pane changes, so the layout never
+         "pops" mid-build. -->
+    <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
+            <RowDefinition Height="72" />
         </Grid.RowDefinitions>
 
-        <Border
-            Grid.Row="0"
-            x:Name="DropTarget"
-            AllowDrop="True"
-            BorderBrush="{ThemeResource AccentFillColorDefaultBrush}"
-            BorderThickness="2"
-            CornerRadius="8"
-            Padding="24"
-            MinHeight="120"
-            Background="{ThemeResource LayerFillColorDefaultBrush}"
-            DragOver="OnDropTargetDragOver"
-            Drop="OnDropTargetDrop">
-            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
-                <FontIcon Glyph="&#xE7C3;" FontSize="32" HorizontalAlignment="Center" />
-                <TextBlock
-                    Style="{StaticResource SubtitleTextBlockStyle}"
-                    HorizontalAlignment="Center"
-                    Text="Drop a Windows ISO here" />
-                <TextBlock
-                    Style="{StaticResource CaptionTextBlockStyle}"
-                    HorizontalAlignment="Center"
-                    Text="{x:Bind ViewModel.IsoPath, Mode=OneWay, TargetNullValue='(no ISO selected)'}"
-                    TextWrapping="Wrap"
-                    TextAlignment="Center" />
-                <Button
-                    HorizontalAlignment="Center"
-                    Content="Browse for ISO..."
-                    IsEnabled="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource NotConverter}}"
-                    Click="OnBrowseClicked" />
-            </StackPanel>
-        </Border>
-
-        <Grid Grid.Row="1" ColumnSpacing="8">
+        <!-- ======================== THREE PANES ======================== -->
+        <Grid Grid.Row="0">
             <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="280" />
                 <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="300" />
             </Grid.ColumnDefinitions>
-            <ComboBox
+
+            <!-- ====== LEFT: inputs ====== -->
+            <Border
                 Grid.Column="0"
-                Header="Target USB drive"
-                HorizontalAlignment="Stretch"
-                ItemsSource="{x:Bind ViewModel.Drives, Mode=OneWay}"
-                SelectedItem="{x:Bind ViewModel.SelectedDrive, Mode=TwoWay}"
-                IsEnabled="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource NotConverter}}">
-                <ComboBox.ItemTemplate>
-                    <DataTemplate x:DataType="services:DiskInfo">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <FontIcon Glyph="&#xE88E;" FontSize="14" />
-                            <TextBlock>
-                                <Run Text="Disk" />
-                                <Run Text="{x:Bind Number}" />
-                                <Run Text=" — " />
-                                <Run Text="{x:Bind FriendlyName}" />
-                                <Run Text=" (" />
-                                <Run Text="{x:Bind SizeDisplay}" />
-                                <Run Text=")" />
-                            </TextBlock>
-                        </StackPanel>
-                    </DataTemplate>
-                </ComboBox.ItemTemplate>
-            </ComboBox>
-            <Button
-                Grid.Column="1"
-                VerticalAlignment="Bottom"
-                ToolTipService.ToolTip="Refresh drive list"
-                Command="{x:Bind ViewModel.RefreshDrivesCommand}">
-                <FontIcon Glyph="&#xE72C;" FontSize="14" />
-            </Button>
+                BorderBrush="{ThemeResource ControlStrongStrokeColorDefaultBrush}"
+                BorderThickness="0,0,1,0"
+                Background="{ThemeResource LayerFillColorDefaultBrush}">
+                <Grid Padding="18" RowSpacing="14">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <!-- Section label: Source ISO -->
+                    <StackPanel Grid.Row="0" Spacing="6">
+                        <TextBlock
+                            Text="SOURCE ISO"
+                            FontSize="11"
+                            FontWeight="SemiBold"
+                            CharacterSpacing="60"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <Border
+                            x:Name="DropTarget"
+                            AllowDrop="True"
+                            BorderBrush="{ThemeResource AccentFillColorDefaultBrush}"
+                            BorderThickness="1.5"
+                            CornerRadius="8"
+                            Padding="14"
+                            MinHeight="98"
+                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            DragOver="OnDropTargetDragOver"
+                            Drop="OnDropTargetDrop">
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="4">
+                                <FontIcon Glyph="&#xE7C3;" FontSize="22" HorizontalAlignment="Center" />
+                                <TextBlock
+                                    HorizontalAlignment="Center"
+                                    FontSize="13"
+                                    FontWeight="SemiBold"
+                                    Text="{x:Bind ViewModel.IsoPath, Mode=OneWay, TargetNullValue='Drop a Windows ISO here'}"
+                                    TextTrimming="CharacterEllipsis"
+                                    TextWrapping="NoWrap" />
+                                <TextBlock
+                                    HorizontalAlignment="Center"
+                                    FontSize="11"
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                    Text="or use Browse · drop another to replace" />
+                                <Button
+                                    HorizontalAlignment="Center"
+                                    Margin="0,4,0,0"
+                                    Content="Browse..."
+                                    IsEnabled="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource NotConverter}}"
+                                    Click="OnBrowseClicked" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Section label: Target USB -->
+                    <StackPanel Grid.Row="1" Spacing="6">
+                        <TextBlock
+                            Text="TARGET USB"
+                            FontSize="11"
+                            FontWeight="SemiBold"
+                            CharacterSpacing="60"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <ComboBox
+                            HorizontalAlignment="Stretch"
+                            ItemsSource="{x:Bind ViewModel.Drives, Mode=OneWay}"
+                            SelectedItem="{x:Bind ViewModel.SelectedDrive, Mode=TwoWay}"
+                            IsEnabled="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource NotConverter}}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate x:DataType="services:DiskInfo">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <FontIcon Glyph="&#xE88E;" FontSize="14" />
+                                        <TextBlock>
+                                            <Run Text="Disk" />
+                                            <Run Text="{x:Bind Number}" />
+                                            <Run Text="{x:Bind DriveLettersTag}" />
+                                            <Run Text=" — " />
+                                            <Run Text="{x:Bind FriendlyName}" />
+                                            <Run Text=" (" />
+                                            <Run Text="{x:Bind SizeDisplay}" />
+                                            <Run Text=")" />
+                                        </TextBlock>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </StackPanel>
+
+                    <!-- Section label: defaults reminder -->
+                    <StackPanel Grid.Row="2" Spacing="6">
+                        <TextBlock
+                            Text="DEFAULTS"
+                            FontSize="11"
+                            FontWeight="SemiBold"
+                            CharacterSpacing="60"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <Grid ColumnSpacing="8" RowSpacing="4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Boot mode" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock Grid.Row="0" Grid.Column="1" Text="UEFI" FontSize="12" FontWeight="SemiBold" />
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Partition scheme" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock Grid.Row="1" Grid.Column="1" Text="GPT" FontSize="12" FontWeight="SemiBold" />
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="File system" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock Grid.Row="2" Grid.Column="1" Text="FAT32" FontSize="12" FontWeight="SemiBold" />
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Auto-split install.wim" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock Grid.Row="3" Grid.Column="1" Text="On" FontSize="12" FontWeight="SemiBold" />
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- Spacer row pushes the info card to the bottom -->
+                    <Border Grid.Row="3" />
+
+                    <!-- Bottom info card: result message when complete, helper text otherwise.
+                         IsOpen is bound, but the surrounding Border reserves a fixed
+                         min-height so layout doesn't shift between idle and done. -->
+                    <Border
+                        Grid.Row="4"
+                        MinHeight="84"
+                        VerticalAlignment="Bottom">
+                        <Grid>
+                            <!-- Idle helper: shown when no result is present -->
+                            <Border
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                Padding="10"
+                                Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                                Visibility="{x:Bind ViewModel.IsResultVisible, Mode=OneWay, Converter={StaticResource InvertedBoolToVisibilityConverter}}">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xE946;" FontSize="14" VerticalAlignment="Top" Margin="0,1,0,0" />
+                                    <TextBlock
+                                        FontSize="12"
+                                        TextWrapping="Wrap"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                        Text="Strong defaults: UEFI · GPT · FAT32 · auto-splits install.wim when it exceeds the FAT32 4 GB cap. Target USB will be wiped." />
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Result InfoBar: same slot, only visible after a build settles -->
+                            <InfoBar
+                                IsOpen="{x:Bind ViewModel.IsResultVisible, Mode=OneWay}"
+                                Severity="{x:Bind ViewModel.ResultSeverity, Mode=OneWay}"
+                                Title="{x:Bind ViewModel.ResultTitle, Mode=OneWay}"
+                                Message="{x:Bind ViewModel.Result, Mode=OneWay}"
+                                IsClosable="False" />
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- ====== CENTER: live log (first-class citizen, sunken background for IDE feel) ====== -->
+            <Grid Grid.Column="1" Background="{ThemeResource SolidBackgroundFillColorBaseBrush}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="38" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!-- Log header strip -->
+                <Border
+                    Grid.Row="0"
+                    Padding="16,0"
+                    BorderBrush="{ThemeResource ControlStrongStrokeColorDefaultBrush}"
+                    BorderThickness="0,0,0,1"
+                    Background="{ThemeResource LayerFillColorDefaultBrush}">
+                    <StackPanel
+                        Orientation="Horizontal"
+                        Spacing="10"
+                        VerticalAlignment="Center">
+                        <FontIcon
+                            Glyph="&#xE756;"
+                            FontSize="13"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock
+                            Text="Log"
+                            FontSize="12"
+                            FontWeight="SemiBold"
+                            VerticalAlignment="Center" />
+                        <TextBlock
+                            Text="·"
+                            FontSize="12"
+                            Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                            VerticalAlignment="Center" />
+                        <TextBlock
+                            Text="{x:Bind ViewModel.StatusPillText, Mode=OneWay}"
+                            FontSize="12"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            VerticalAlignment="Center" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Log content: monospaced, auto-scrolling -->
+                <ScrollViewer
+                    Grid.Row="1"
+                    x:Name="LogScrollViewer"
+                    Padding="16,12"
+                    VerticalScrollMode="Auto"
+                    VerticalScrollBarVisibility="Auto"
+                    HorizontalScrollMode="Disabled"
+                    HorizontalScrollBarVisibility="Disabled">
+                    <ItemsControl ItemsSource="{x:Bind ViewModel.LogLines, Mode=OneWay}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="x:String">
+                                <TextBlock
+                                    FontFamily="Consolas"
+                                    FontSize="12"
+                                    LineHeight="18"
+                                    Text="{x:Bind}"
+                                    TextWrapping="Wrap"
+                                    Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Grid>
+
+            <!-- ====== RIGHT: pipeline phases ====== -->
+            <Border
+                Grid.Column="2"
+                BorderBrush="{ThemeResource ControlStrongStrokeColorDefaultBrush}"
+                BorderThickness="1,0,0,0"
+                Background="{ThemeResource LayerFillColorDefaultBrush}">
+                <Grid Padding="18" RowSpacing="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock
+                        Grid.Row="0"
+                        Text="PIPELINE · 6 PHASES"
+                        FontSize="11"
+                        FontWeight="SemiBold"
+                        CharacterSpacing="60"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+
+                    <ItemsControl Grid.Row="1" ItemsSource="{x:Bind ViewModel.Phases, Mode=OneWay}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Spacing="2" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="viewmodels:PhaseItem">
+                                <Grid ColumnSpacing="10" Padding="0,8" Height="52">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="20" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid Grid.Column="0" Width="20" Height="20" VerticalAlignment="Top" Margin="0,2,0,0">
+                                        <FontIcon
+                                            FontSize="14"
+                                            Glyph="{x:Bind Glyph, Mode=OneWay}"
+                                            Visibility="{x:Bind HasGlyph, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"
+                                            Foreground="{x:Bind Status, Mode=OneWay, Converter={StaticResource PhaseStatusToBrushConverter}}" />
+                                        <ProgressRing
+                                            Width="16"
+                                            Height="16"
+                                            IsActive="{x:Bind IsRunning, Mode=OneWay}"
+                                            Visibility="{x:Bind IsRunning, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                    </Grid>
+                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                        <TextBlock
+                                            Text="{x:Bind Name}"
+                                            FontSize="13"
+                                            FontWeight="SemiBold"
+                                            Foreground="{x:Bind Status, Mode=OneWay, Converter={StaticResource PhaseStatusToTitleBrushConverter}}" />
+                                        <TextBlock
+                                            Text="{x:Bind Detail, Mode=OneWay}"
+                                            FontSize="11"
+                                            TextTrimming="CharacterEllipsis"
+                                            TextWrapping="NoWrap"
+                                            Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Grid>
+            </Border>
         </Grid>
 
-        <StackPanel
-            Grid.Row="2"
-            Orientation="Horizontal"
-            Spacing="8">
-            <Button
-                Style="{StaticResource AccentButtonStyle}"
-                Content="Start"
-                Command="{x:Bind ViewModel.StartCommand}"
-                IsEnabled="{x:Bind ViewModel.CanStart, Mode=OneWay}" />
-            <Button
-                Content="Cancel"
-                Command="{x:Bind ViewModel.CancelCommand}"
-                IsEnabled="{x:Bind ViewModel.IsBusy, Mode=OneWay}" />
-        </StackPanel>
+        <!-- ======================== BOTTOM ACTION BAR ======================== -->
+        <Border
+            Grid.Row="1"
+            BorderBrush="{ThemeResource ControlStrongStrokeColorDefaultBrush}"
+            BorderThickness="0,1,0,0"
+            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+            <Grid Padding="18,8">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="3" Spacing="4">
-            <ProgressBar
-                Minimum="0"
-                Maximum="100"
-                Value="{x:Bind ViewModel.ProgressPercent, Mode=OneWay}"
-                ShowError="False"
-                IsIndeterminate="False" />
-            <TextBlock
-                Style="{StaticResource CaptionTextBlockStyle}"
-                Text="{x:Bind ViewModel.CurrentOperation, Mode=OneWay}"
-                TextWrapping="Wrap" />
-            <TextBlock
-                Style="{StaticResource BodyStrongTextBlockStyle}"
-                Text="{x:Bind ViewModel.Result, Mode=OneWay}"
-                Visibility="{x:Bind ViewModel.Result, Mode=OneWay, Converter={StaticResource NullToCollapsedConverter}}"
-                TextWrapping="Wrap" />
-        </StackPanel>
+                <!-- Row 0: action controls (status pill, progress, buttons) -->
+                <Grid ColumnSpacing="12" VerticalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
 
-        <Expander
-            Grid.Row="4"
-            Header="Log"
-            HorizontalAlignment="Stretch"
-            HorizontalContentAlignment="Stretch"
-            IsExpanded="False">
-            <ScrollViewer MaxHeight="260" VerticalScrollMode="Auto">
-                <ItemsControl ItemsSource="{x:Bind ViewModel.LogLines, Mode=OneWay}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="x:String">
-                            <TextBlock
-                                FontFamily="Consolas"
-                                FontSize="12"
-                                Text="{x:Bind}"
-                                TextWrapping="Wrap" />
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </ScrollViewer>
-        </Expander>
+                    <!-- Status pill: colour and text driven by VM Status / StatusPillText -->
+                    <Border
+                        Grid.Column="0"
+                        VerticalAlignment="Center"
+                        Padding="10,3"
+                        CornerRadius="10"
+                        BorderThickness="1"
+                        Background="{x:Bind ViewModel.Status, Mode=OneWay, Converter={StaticResource StatusKindToBrushConverter}, ConverterParameter=background}"
+                        BorderBrush="{x:Bind ViewModel.Status, Mode=OneWay, Converter={StaticResource StatusKindToBrushConverter}, ConverterParameter=border}">
+                        <TextBlock
+                            FontSize="12"
+                            FontWeight="SemiBold"
+                            Text="{x:Bind ViewModel.StatusPillText, Mode=OneWay}"
+                            Foreground="{x:Bind ViewModel.Status, Mode=OneWay, Converter={StaticResource StatusKindToBrushConverter}, ConverterParameter=foreground}" />
+                    </Border>
 
-        <TextBlock
-            Grid.Row="5"
-            VerticalAlignment="Bottom"
-            Style="{StaticResource CaptionTextBlockStyle}"
-            Foreground="{ThemeResource TextFillColorTertiaryBrush}"
-            Text="Runs as administrator. Target USB will be wiped. MIT-licensed." />
+                    <!-- Progress strip: always present so layout never shifts -->
+                    <ProgressBar
+                        Grid.Column="1"
+                        Height="6"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Center"
+                        Margin="14,0"
+                        Minimum="0"
+                        Maximum="100"
+                        Value="{x:Bind ViewModel.ProgressPercent, Mode=OneWay}"
+                        ShowError="False"
+                        IsIndeterminate="False" />
+
+                    <!-- Action buttons: both rendered all the time, only IsEnabled flips -->
+                    <StackPanel
+                        Grid.Column="2"
+                        Orientation="Horizontal"
+                        Spacing="8"
+                        VerticalAlignment="Center">
+                        <Button
+                            ToolTipService.ToolTip="Refresh drive list"
+                            IsEnabled="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource NotConverter}}"
+                            Command="{x:Bind ViewModel.RefreshDrivesCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon Glyph="&#xE72C;" FontSize="13" />
+                                <TextBlock Text="Refresh" FontSize="13" />
+                            </StackPanel>
+                        </Button>
+                        <Button
+                            Content="Cancel"
+                            Command="{x:Bind ViewModel.CancelCommand}"
+                            IsEnabled="{x:Bind ViewModel.IsBusy, Mode=OneWay}" />
+                        <Button
+                            Style="{StaticResource AccentButtonStyle}"
+                            Command="{x:Bind ViewModel.StartCommand}"
+                            IsEnabled="{x:Bind ViewModel.CanStart, Mode=OneWay}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon Glyph="&#xE768;" FontSize="13" />
+                                <TextBlock Text="Start build" FontSize="13" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Row 1: status caption strip (elevation, current op, version) -->
+                <Grid Grid.Row="1" ColumnSpacing="10" Margin="0,4,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Elevation badge: icon colour follows Status -->
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <FontIcon
+                            Glyph="&#xE730;"
+                            FontSize="11"
+                            Foreground="{x:Bind ViewModel.Status, Mode=OneWay, Converter={StaticResource StatusKindToBrushConverter}, ConverterParameter=foreground}" />
+                        <TextBlock
+                            Text="Elevated worker"
+                            FontSize="11"
+                            VerticalAlignment="Center"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+
+                    <TextBlock
+                        Grid.Column="1"
+                        Text="·"
+                        FontSize="11"
+                        VerticalAlignment="Center"
+                        Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+
+                    <TextBlock
+                        Grid.Column="2"
+                        Text="{x:Bind ViewModel.CurrentOperation, Mode=OneWay}"
+                        FontSize="11"
+                        VerticalAlignment="Center"
+                        TextTrimming="CharacterEllipsis"
+                        TextWrapping="NoWrap"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+
+                    <TextBlock
+                        Grid.Column="3"
+                        Text="IsoToUsb · MIT · runs as administrator"
+                        FontSize="11"
+                        VerticalAlignment="Center"
+                        Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                </Grid>
+            </Grid>
+        </Border>
     </Grid>
 </Page>
+
 
