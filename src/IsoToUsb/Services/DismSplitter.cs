@@ -47,6 +47,13 @@ public sealed class DismSplitter
             : outputBaseName!;
         var swmPath = Path.Combine(destinationDirectory, baseName);
 
+        // Source WIM size is a good estimator of the total SWM payload (chunks
+        // are roughly equal in total to the source). Used to drive byte-based
+        // progress instead of relying on dism's stdout regex, which often
+        // sits at 0% for long stretches then jumps.
+        long sourceBytes = 0;
+        try { sourceBytes = new FileInfo(sourceWim).Length; } catch { }
+
         var psi = new ProcessStartInfo
         {
             FileName = DismPath,
@@ -115,6 +122,12 @@ public sealed class DismSplitter
             }
         }, process);
 
+        // Byte-poller: independent of dism's stdout, just totals the .swm
+        // files in the destination directory every 500ms. Gives a smooth,
+        // accurate progress signal even when dism stays quiet.
+        using var pollCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var pollTask = PollSplitSizeAsync(destinationDirectory, baseName, sourceBytes, progress, pollCts.Token);
+
         try
         {
             await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
@@ -133,11 +146,78 @@ public sealed class DismSplitter
             }
             throw;
         }
+        finally
+        {
+            pollCts.Cancel();
+            try { await pollTask.ConfigureAwait(false); } catch { }
+        }
 
         if (process.ExitCode != 0)
         {
             throw new InvalidOperationException(
                 $"dism /Split-Image failed (exit code {process.ExitCode}). {stderrBuilder}");
+        }
+
+        // Final 100% report so consumers see a clean end-of-stage signal
+        // even if the poll loop missed the last write.
+        progress?.Report(new DismProgress(100, "split complete"));
+    }
+
+    /// <summary>
+    /// Polls the destination directory's <c>.swm</c> files and reports a
+    /// byte-based percent against <paramref name="estimatedTotalBytes"/>
+    /// (typically the source WIM size). Capped at 99% so the caller can
+    /// emit a clean 100% only after dism actually exits successfully.
+    /// </summary>
+    private static async Task PollSplitSizeAsync(
+        string destDir,
+        string baseName,
+        long estimatedTotalBytes,
+        IProgress<DismProgress>? progress,
+        CancellationToken pollToken)
+    {
+        if (estimatedTotalBytes <= 0 || progress is null)
+        {
+            return;
+        }
+
+        var stem = Path.GetFileNameWithoutExtension(baseName);
+        var lastPct = -1;
+        try
+        {
+            while (!pollToken.IsCancellationRequested)
+            {
+                long total = 0;
+                try
+                {
+                    foreach (var f in Directory.EnumerateFiles(destDir, $"{stem}*.swm", SearchOption.TopDirectoryOnly))
+                    {
+                        try { total += new FileInfo(f).Length; } catch { }
+                    }
+                }
+                catch
+                {
+                    // IO race during enumeration — just try again next tick.
+                }
+
+                if (total > 0)
+                {
+                    var pct = (int)Math.Clamp((double)total * 100.0 / estimatedTotalBytes, 0, 99);
+                    if (pct != lastPct)
+                    {
+                        lastPct = pct;
+                        var mib = total / (1024.0 * 1024.0);
+                        progress.Report(new DismProgress(pct, $"split: {mib:N0} MiB written ({pct}%)"));
+                    }
+                }
+
+                try { await Task.Delay(500, pollToken).ConfigureAwait(false); }
+                catch (OperationCanceledException) { break; }
+            }
+        }
+        catch
+        {
+            // Don't let the poller bubble up an exception into the pipeline.
         }
     }
 }

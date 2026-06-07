@@ -96,30 +96,90 @@ public sealed class UsbBuildPipeline
             // original install.wim is the common case, but Windows server
             // ISOs and slipstreamed images sometimes also ship boot.wim
             // close to the limit.
+            //
+            // Strategy: split to a local temp directory on the system drive
+            // (NVMe-fast, ~1-3 GB/s) instead of directly to USB FAT32
+            // (~30-150 MB/s). DISM's small synchronous writes are especially
+            // slow on FAT32; running the split phase locally is typically
+            // 10x+ faster overall. The resulting SWMs are then copied to the
+            // USB with our own FileCopier (1 MiB sequential buffers + great
+            // per-byte progress).
+            //
+            // Progress mapping within the SplitInstallWim stage:
+            //   0..50%  = local split (byte-poll from DismSplitter)
+            //   50..100% = copy SWMs to USB (per-byte from FileCopier)
             for (int i = 0; i < skipped.Count; i++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 var rel = skipped[i];
+                var sourceWim = Path.Combine(mounted.MountRoot, rel);
+                var finalDestDir = Path.Combine(usbRoot, Path.GetDirectoryName(rel) ?? string.Empty);
+                var swmBase = Path.GetFileNameWithoutExtension(rel) + ".swm";
+
+                var sourceBytes = new FileInfo(sourceWim).Length;
+                var tempRoot = Path.Combine(
+                    Path.GetTempPath(),
+                    "IsoToUsb-split-" + Guid.NewGuid().ToString("N"));
+
+                // Free-space check on the temp drive so we fail fast with a
+                // clear message instead of running dism for 30s only to die.
+                EnsureFreeSpace(tempRoot, sourceBytes + 256L * 1024 * 1024);
+
                 progress?.Report(new PipelineProgress(
                     PipelineStage.SplitInstallWim,
                     0,
-                    $"Splitting {rel} ({i + 1}/{skipped.Count}) with DISM..."));
-                var sourceWim = Path.Combine(mounted.MountRoot, rel);
-                var destDir = Path.Combine(usbRoot, Path.GetDirectoryName(rel) ?? string.Empty);
-                var swmBase = Path.GetFileNameWithoutExtension(rel) + ".swm";
-                var splitProgress = new Progress<DismProgress>(p =>
+                    $"Splitting {rel} locally ({i + 1}/{skipped.Count})..."));
+
+                Directory.CreateDirectory(tempRoot);
+                try
                 {
-                    if (p.Percent >= 0)
+                    // Phase 1: split to local temp (0..50%).
+                    var splitProgress = new Progress<DismProgress>(p =>
                     {
-                        progress?.Report(new PipelineProgress(PipelineStage.SplitInstallWim, p.Percent, p.Line));
-                    }
-                });
-                await Splitter.SplitAsync(
-                    sourceWim,
-                    destDir,
-                    outputBaseName: swmBase,
-                    progress: splitProgress,
-                    cancellationToken: cancellationToken).ConfigureAwait(false);
+                        if (p.Percent >= 0)
+                        {
+                            progress?.Report(new PipelineProgress(
+                                PipelineStage.SplitInstallWim,
+                                p.Percent / 2,
+                                p.Line));
+                        }
+                    });
+                    await Splitter.SplitAsync(
+                        sourceWim,
+                        tempRoot,
+                        outputBaseName: swmBase,
+                        progress: splitProgress,
+                        cancellationToken: cancellationToken).ConfigureAwait(false);
+
+                    // Phase 2: copy split chunks to the USB (50..100%).
+                    progress?.Report(new PipelineProgress(
+                        PipelineStage.SplitInstallWim,
+                        50,
+                        $"Copying split chunks to USB..."));
+                    var swmCopier = new FileCopier();
+                    var swmCopyProgress = new Progress<CopyProgress>(p =>
+                    {
+                        if (p.BytesTotal <= 0)
+                        {
+                            return;
+                        }
+                        var copyPct = (int)(p.BytesDone * 100 / p.BytesTotal);
+                        var overallPct = 50 + copyPct / 2;
+                        progress?.Report(new PipelineProgress(
+                            PipelineStage.SplitInstallWim,
+                            overallPct,
+                            $"copy {p.FilesDone}/{p.FilesTotal} {p.CurrentRelativePath}"));
+                    });
+                    Directory.CreateDirectory(finalDestDir);
+                    await swmCopier
+                        .CopyAsync(tempRoot, finalDestDir, swmCopyProgress, cancellationToken)
+                        .ConfigureAwait(false);
+                }
+                finally
+                {
+                    // Best-effort cleanup; never block on this.
+                    try { Directory.Delete(tempRoot, recursive: true); } catch { }
+                }
             }
         }
 
@@ -143,6 +203,41 @@ public sealed class UsbBuildPipeline
     }
 
     private readonly record struct RejectedFile(string RelativePath, long SizeBytes);
+
+    /// <summary>
+    /// Ensures the drive that hosts <paramref name="anyPathOnDrive"/> has at
+    /// least <paramref name="requiredBytes"/> free. Throws a clear error
+    /// before the split phase so users get actionable feedback instead of a
+    /// dism exit-code surprise mid-build.
+    /// </summary>
+    private static void EnsureFreeSpace(string anyPathOnDrive, long requiredBytes)
+    {
+        try
+        {
+            var root = Path.GetPathRoot(Path.GetFullPath(anyPathOnDrive));
+            if (string.IsNullOrEmpty(root))
+            {
+                return;
+            }
+            var drive = new DriveInfo(root);
+            if (drive.AvailableFreeSpace < requiredBytes)
+            {
+                throw new IOException(
+                    $"Not enough free space on {drive.Name} to split locally first. " +
+                    $"Need {requiredBytes / (1024.0 * 1024 * 1024):N1} GiB, " +
+                    $"have {drive.AvailableFreeSpace / (1024.0 * 1024 * 1024):N1} GiB.");
+            }
+        }
+        catch (IOException)
+        {
+            throw;
+        }
+        catch
+        {
+            // Treat probe failures as "unknown" — don't block the build on a
+            // metadata error from an unusual filesystem.
+        }
+    }
 
     /// <summary>
     /// Walks the mounted ISO looking for files that exceed FAT32's per-file
