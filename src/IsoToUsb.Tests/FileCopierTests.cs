@@ -42,10 +42,10 @@ public class FileCopierTests
     }
 
     [TestMethod]
-    public void Classify_Splits_Any_Oversize_Wim_Esd_Swm_Regardless_Of_Path()
+    public void Classify_Splits_Any_Oversize_Wim_Esd_Regardless_Of_Path()
     {
-        // Boot.wim, custom-named .esd, and pre-split .swm should all be
-        // recognized as splittable so the pipeline never rejects them.
+        // Boot.wim and custom-named .esd should both be recognized as
+        // splittable so the pipeline never rejects them.
         var path = Path.Combine(Path.GetTempPath(), $"boot_{Guid.NewGuid():N}.wim");
         File.WriteAllBytes(path, new byte[10]);
         try
@@ -54,6 +54,28 @@ public class FileCopierTests
             Assert.AreEqual(
                 Fat32FileAction.SplitWithDism,
                 FileCopier.ClassifyForFat32(info, Path.Combine("sources", "boot.wim"), maxBytes: 0));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [TestMethod]
+    public void Classify_Rejects_Oversize_Swm_Because_Dism_Cannot_Resplit()
+    {
+        // DISM /Split-Image takes a .wim/.esd input; it cannot re-split an
+        // already-split .swm chunk. If a custom ISO ships with a .swm
+        // larger than FAT32's 4 GiB-1 per-file limit we MUST reject and
+        // abort up front instead of wiping the USB and then failing.
+        var path = Path.Combine(Path.GetTempPath(), $"install_{Guid.NewGuid():N}.swm");
+        File.WriteAllBytes(path, new byte[10]);
+        try
+        {
+            var info = new FileInfo(path);
+            Assert.AreEqual(
+                Fat32FileAction.Reject,
+                FileCopier.ClassifyForFat32(info, Path.Combine("sources", "install.swm"), maxBytes: 0));
         }
         finally
         {

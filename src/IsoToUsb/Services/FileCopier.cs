@@ -126,8 +126,10 @@ public sealed class FileCopier
     /// <summary>
     /// Classifies a file for FAT32-safe handling. Files at or below
     /// <paramref name="maxBytes"/> are <see cref="Fat32FileAction.Copy"/>.
-    /// Larger files that are WIM/ESD/SWM (split-capable by DISM) are
-    /// <see cref="Fat32FileAction.SplitWithDism"/>; everything else is
+    /// Larger files that are WIM/ESD (split-capable by DISM) are
+    /// <see cref="Fat32FileAction.SplitWithDism"/>; everything else
+    /// (including a pre-split <c>.swm</c> chunk that somehow ended up larger
+    /// than FAT32's per-file limit — DISM cannot re-split a <c>.swm</c>) is
     /// <see cref="Fat32FileAction.Reject"/> so the pipeline aborts before
     /// wiping the target.
     /// </summary>
@@ -141,8 +143,7 @@ public sealed class FileCopier
         }
         var ext = Path.GetExtension(relativePath);
         if (ext.Equals(".wim", StringComparison.OrdinalIgnoreCase)
-            || ext.Equals(".esd", StringComparison.OrdinalIgnoreCase)
-            || ext.Equals(".swm", StringComparison.OrdinalIgnoreCase))
+            || ext.Equals(".esd", StringComparison.OrdinalIgnoreCase))
         {
             return Fat32FileAction.SplitWithDism;
         }
