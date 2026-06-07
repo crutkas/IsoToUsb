@@ -11,6 +11,59 @@
     mc:Ignorable="d"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
+    <Page.Resources>
+        <!-- Shared template for a single phase-rail node. Used 6 times in the
+             rail's hand-laid 6-row Grid so that each row is the same height
+             (justify-content:space-between in the design). The active state
+             draws a 44px translucent accent disc behind the 30px node — that
+             is the design board's
+             box-shadow:0 0 0 5px color-mix(accent 10%, transparent). -->
+        <DataTemplate x:Key="RailNodeTemplate" x:DataType="viewmodels:PhaseItem">
+            <StackPanel
+                Orientation="Vertical"
+                Spacing="4"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                ToolTipService.ToolTip="{x:Bind Name}">
+                <Grid
+                    Width="44"
+                    Height="44"
+                    HorizontalAlignment="Center">
+                    <Border
+                        Width="44"
+                        Height="44"
+                        CornerRadius="22"
+                        Background="{StaticResource RailActiveGlowBrush}"
+                        Visibility="{x:Bind IsRunning, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
+                    <Border
+                        Width="30"
+                        Height="30"
+                        CornerRadius="15"
+                        BorderThickness="1"
+                        Background="{x:Bind Status, Mode=OneWay, Converter={StaticResource PhaseStatusToRailBrushConverter}, ConverterParameter=node-background}"
+                        BorderBrush="{x:Bind Status, Mode=OneWay, Converter={StaticResource PhaseStatusToRailBrushConverter}, ConverterParameter=node-border}" />
+                    <FontIcon
+                        FontSize="14"
+                        Glyph="{x:Bind RailGlyph}"
+                        Foreground="{x:Bind Status, Mode=OneWay, Converter={StaticResource PhaseStatusToRailBrushConverter}, ConverterParameter=node-foreground}"
+                        Visibility="{x:Bind IsRunning, Mode=OneWay, Converter={StaticResource InvertedBoolToVisibilityConverter}}" />
+                    <ProgressRing
+                        Width="18"
+                        Height="18"
+                        IsActive="{x:Bind IsRunning, Mode=OneWay}"
+                        Visibility="{x:Bind IsRunning, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
+                </Grid>
+                <TextBlock
+                    Text="{x:Bind ShortName}"
+                    FontSize="10"
+                    FontWeight="SemiBold"
+                    HorizontalAlignment="Center"
+                    TextAlignment="Center"
+                    Foreground="{x:Bind Status, Mode=OneWay, Converter={StaticResource PhaseStatusToRailBrushConverter}, ConverterParameter=label-foreground}" />
+            </StackPanel>
+        </DataTemplate>
+    </Page.Resources>
+
     <!-- Concept A v2 · Twin floating cards (Setup · Work):
          Row 0 (*):    two floating cards (Setup on the left, Work on the right).
                        Elevation/focus shifts by state: IsSetupFocal when idle so
@@ -36,36 +89,23 @@
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <!-- ====== LEFT · SETUP CARD (with focal halo) ====== -->
+            <!-- ====== LEFT · SETUP CARD ====== -->
             <Grid Grid.Column="0">
-                <!-- Halo ring 3 (outermost, faintest, biggest spread) -->
-                <Border
-                    Margin="-10"
-                    CornerRadius="20"
-                    Background="{StaticResource FocalHaloOuterBrush}"
-                    IsHitTestVisible="False"
-                    Opacity="{x:Bind ViewModel.IsSetupFocal, Mode=OneWay, Converter={StaticResource BoolToHaloOpacityConverter}}" />
-                <!-- Halo ring 2 (mid, mid alpha) -->
-                <Border
-                    Margin="-5"
-                    CornerRadius="16"
-                    Background="{StaticResource FocalHaloInnerBrush}"
-                    IsHitTestVisible="False"
-                    Opacity="{x:Bind ViewModel.IsSetupFocal, Mode=OneWay, Converter={StaticResource BoolToHaloOpacityConverter}}" />
-                <!-- Halo edge (tightest, strongest — reads as the accent border) -->
-                <Border
-                    Margin="-1"
-                    CornerRadius="13"
-                    Background="{StaticResource FocalHaloEdgeBrush}"
-                    IsHitTestVisible="False"
-                    Opacity="{x:Bind ViewModel.IsSetupFocal, Mode=OneWay, Converter={StaticResource BoolToHaloOpacityConverter}}" />
-                <!-- Actual card -->
+                <!-- Single floating card. Elevation is a neutral ThemeShadow
+                     driven by Translation Z; focal/inactive states differ in
+                     opacity, a subtle accent-tinted border, and the Z-lift
+                     (no colored neon halos — design uses a soft drop shadow
+                     and a 34%-accent border tint, not glow rings). -->
                 <Border
                     CornerRadius="12"
                     BorderThickness="1"
                     Background="{x:Bind ViewModel.IsSetupFocal, Mode=OneWay, Converter={StaticResource BoolToFocalBackgroundConverter}}"
                     BorderBrush="{x:Bind ViewModel.IsSetupFocal, Mode=OneWay, Converter={StaticResource BoolToFocalBorderBrushConverter}}"
-                    Opacity="{x:Bind ViewModel.IsSetupFocal, Mode=OneWay, Converter={StaticResource BoolToFocalOpacityConverter}}">
+                    Opacity="{x:Bind ViewModel.IsSetupFocal, Mode=OneWay, Converter={StaticResource BoolToFocalOpacityConverter}}"
+                    Translation="{x:Bind ViewModel.IsSetupFocal, Mode=OneWay, Converter={StaticResource BoolToFocalTranslationConverter}}">
+                    <Border.Shadow>
+                        <ThemeShadow />
+                    </Border.Shadow>
                 <Grid Padding="18" RowSpacing="14">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -215,172 +255,186 @@
                 </Border>
             </Grid>
 
-            <!-- ====== RIGHT · WORK CARD (phase rail + log, with focal halo) ====== -->
+            <!-- ====== RIGHT · WORK CARD (phase rail subcard + log subcard) ====== -->
             <Grid Grid.Column="1">
-                <Border
-                    Margin="-10"
-                    CornerRadius="20"
-                    Background="{StaticResource FocalHaloOuterBrush}"
-                    IsHitTestVisible="False"
-                    Opacity="{x:Bind ViewModel.IsWorkFocal, Mode=OneWay, Converter={StaticResource BoolToHaloOpacityConverter}}" />
-                <Border
-                    Margin="-5"
-                    CornerRadius="16"
-                    Background="{StaticResource FocalHaloInnerBrush}"
-                    IsHitTestVisible="False"
-                    Opacity="{x:Bind ViewModel.IsWorkFocal, Mode=OneWay, Converter={StaticResource BoolToHaloOpacityConverter}}" />
-                <Border
-                    Margin="-1"
-                    CornerRadius="13"
-                    Background="{StaticResource FocalHaloEdgeBrush}"
-                    IsHitTestVisible="False"
-                    Opacity="{x:Bind ViewModel.IsWorkFocal, Mode=OneWay, Converter={StaticResource BoolToHaloOpacityConverter}}" />
                 <Border
                     CornerRadius="12"
                     BorderThickness="1"
                     Background="{x:Bind ViewModel.IsWorkFocal, Mode=OneWay, Converter={StaticResource BoolToFocalBackgroundConverter}}"
                     BorderBrush="{x:Bind ViewModel.IsWorkFocal, Mode=OneWay, Converter={StaticResource BoolToFocalBorderBrushConverter}}"
-                    Opacity="{x:Bind ViewModel.IsWorkFocal, Mode=OneWay, Converter={StaticResource BoolToFocalOpacityConverter}}">
-                <Grid ColumnSpacing="0">
+                    Opacity="{x:Bind ViewModel.IsWorkFocal, Mode=OneWay, Converter={StaticResource BoolToFocalOpacityConverter}}"
+                    Translation="{x:Bind ViewModel.IsWorkFocal, Mode=OneWay, Converter={StaticResource BoolToFocalTranslationConverter}}">
+                    <Border.Shadow>
+                        <ThemeShadow />
+                    </Border.Shadow>
+                <Grid Padding="12" ColumnSpacing="12">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="86" />
+                        <ColumnDefinition Width="80" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
 
-                    <!-- Phase rail (left edge of the Work card) -->
+                    <!-- Phase rail subcard. A rounded, bordered, subtle-bg
+                         "Pipeline" panel containing 6 evenly-spaced rail nodes
+                         with a vertical 1px connector line drawn underneath
+                         them. Equivalent to the design board's .phase-rail
+                         (flex-direction:column; justify-content:space-between
+                         + ::before vertical line at left:35px). -->
                     <Border
                         Grid.Column="0"
                         BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                        BorderThickness="0,0,1,0"
-                        Padding="10,16,10,16">
-                        <ItemsControl ItemsSource="{x:Bind ViewModel.Phases, Mode=OneWay}">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <StackPanel
-                                        Orientation="Vertical"
-                                        Spacing="14"
-                                        HorizontalAlignment="Center"
-                                        VerticalAlignment="Stretch" />
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="viewmodels:PhaseItem">
-                                    <StackPanel
-                                        Orientation="Vertical"
-                                        Spacing="4"
-                                        HorizontalAlignment="Center"
-                                        ToolTipService.ToolTip="{x:Bind Name}">
-                                        <!-- Rail node: 32px circle. Icon stays the same
-                                             across statuses; colours change to communicate
-                                             pending / running / done. ProgressRing overlays
-                                             the icon only while running. -->
-                                        <Grid
-                                            Width="34"
-                                            Height="34"
-                                            HorizontalAlignment="Center">
-                                            <Border
-                                                Width="34"
-                                                Height="34"
-                                                CornerRadius="17"
-                                                BorderThickness="1"
-                                                Background="{x:Bind Status, Mode=OneWay, Converter={StaticResource PhaseStatusToRailBrushConverter}, ConverterParameter=node-background}"
-                                                BorderBrush="{x:Bind Status, Mode=OneWay, Converter={StaticResource PhaseStatusToRailBrushConverter}, ConverterParameter=node-border}" />
-                                            <FontIcon
-                                                FontSize="15"
-                                                Glyph="{x:Bind RailGlyph}"
-                                                Foreground="{x:Bind Status, Mode=OneWay, Converter={StaticResource PhaseStatusToRailBrushConverter}, ConverterParameter=node-foreground}"
-                                                Visibility="{x:Bind IsRunning, Mode=OneWay, Converter={StaticResource InvertedBoolToVisibilityConverter}}" />
-                                            <ProgressRing
-                                                Width="22"
-                                                Height="22"
-                                                IsActive="{x:Bind IsRunning, Mode=OneWay}"
-                                                Visibility="{x:Bind IsRunning, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
-                                        </Grid>
-                                        <TextBlock
-                                            Text="{x:Bind ShortName}"
-                                            FontSize="10"
-                                            FontWeight="SemiBold"
-                                            HorizontalAlignment="Center"
-                                            TextAlignment="Center"
-                                            Foreground="{x:Bind Status, Mode=OneWay, Converter={StaticResource PhaseStatusToRailBrushConverter}, ConverterParameter=label-foreground}" />
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
+                        BorderThickness="1"
+                        CornerRadius="10"
+                        Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                        Padding="8,12">
+                        <Grid>
+                            <!-- Vertical connector line (centered, inset from
+                                 the top/bottom nodes by ~node-radius+padding). -->
+                            <Rectangle
+                                Width="1"
+                                HorizontalAlignment="Center"
+                                Margin="0,32,0,32"
+                                Fill="{ThemeResource ControlStrongStrokeColorDefaultBrush}" />
+                            <Grid RowSpacing="0">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <ContentControl
+                                    Grid.Row="0"
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Stretch"
+                                    VerticalAlignment="Stretch"
+                                    VerticalContentAlignment="Stretch"
+                                    Content="{x:Bind ViewModel.Phases[0], Mode=OneWay}"
+                                    ContentTemplate="{StaticResource RailNodeTemplate}" />
+                                <ContentControl
+                                    Grid.Row="1"
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Stretch"
+                                    VerticalAlignment="Stretch"
+                                    VerticalContentAlignment="Stretch"
+                                    Content="{x:Bind ViewModel.Phases[1], Mode=OneWay}"
+                                    ContentTemplate="{StaticResource RailNodeTemplate}" />
+                                <ContentControl
+                                    Grid.Row="2"
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Stretch"
+                                    VerticalAlignment="Stretch"
+                                    VerticalContentAlignment="Stretch"
+                                    Content="{x:Bind ViewModel.Phases[2], Mode=OneWay}"
+                                    ContentTemplate="{StaticResource RailNodeTemplate}" />
+                                <ContentControl
+                                    Grid.Row="3"
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Stretch"
+                                    VerticalAlignment="Stretch"
+                                    VerticalContentAlignment="Stretch"
+                                    Content="{x:Bind ViewModel.Phases[3], Mode=OneWay}"
+                                    ContentTemplate="{StaticResource RailNodeTemplate}" />
+                                <ContentControl
+                                    Grid.Row="4"
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Stretch"
+                                    VerticalAlignment="Stretch"
+                                    VerticalContentAlignment="Stretch"
+                                    Content="{x:Bind ViewModel.Phases[4], Mode=OneWay}"
+                                    ContentTemplate="{StaticResource RailNodeTemplate}" />
+                                <ContentControl
+                                    Grid.Row="5"
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Stretch"
+                                    VerticalAlignment="Stretch"
+                                    VerticalContentAlignment="Stretch"
+                                    Content="{x:Bind ViewModel.Phases[5], Mode=OneWay}"
+                                    ContentTemplate="{StaticResource RailNodeTemplate}" />
+                            </Grid>
+                        </Grid>
                     </Border>
 
-                    <!-- Log column -->
-                    <Grid Grid.Column="1">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="38" />
-                            <RowDefinition Height="*" />
-                        </Grid.RowDefinitions>
+                    <!-- Log subcard: rounded, bordered, with its own header strip. -->
+                    <Border
+                        Grid.Column="1"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="10"
+                        Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="38" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
 
-                        <!-- Log header strip -->
-                        <Border
-                            Grid.Row="0"
-                            Padding="16,0"
-                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                            BorderThickness="0,0,0,1"
-                            Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}">
-                            <StackPanel
-                                Orientation="Horizontal"
-                                Spacing="10"
-                                VerticalAlignment="Center">
-                                <FontIcon
-                                    Glyph="&#xE756;"
-                                    FontSize="13"
-                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                <TextBlock
-                                    Text="Log"
-                                    FontSize="12"
-                                    FontWeight="SemiBold"
-                                    VerticalAlignment="Center" />
-                                <TextBlock
-                                    Text="·"
-                                    FontSize="12"
-                                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
-                                    VerticalAlignment="Center" />
-                                <TextBlock
-                                    Text="{x:Bind ViewModel.StatusPillText, Mode=OneWay}"
-                                    FontSize="12"
-                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                    VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Border>
+                            <!-- Log header strip -->
+                            <Border
+                                Grid.Row="0"
+                                Padding="16,0"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="0,0,0,1"
+                                CornerRadius="10,10,0,0"
+                                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                                <StackPanel
+                                    Orientation="Horizontal"
+                                    Spacing="10"
+                                    VerticalAlignment="Center">
+                                    <FontIcon
+                                        Glyph="&#xE756;"
+                                        FontSize="13"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock
+                                        Text="Log"
+                                        FontSize="12"
+                                        FontWeight="SemiBold"
+                                        VerticalAlignment="Center" />
+                                    <TextBlock
+                                        Text="·"
+                                        FontSize="12"
+                                        Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                        VerticalAlignment="Center" />
+                                    <TextBlock
+                                        Text="{x:Bind ViewModel.StatusPillText, Mode=OneWay}"
+                                        FontSize="12"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                        VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Border>
 
-                        <!-- Log content: monospaced, syntax-coloured, auto-scrolling -->
-                        <ScrollViewer
-                            Grid.Row="1"
-                            x:Name="LogScrollViewer"
-                            Padding="16,12"
-                            VerticalScrollMode="Auto"
-                            VerticalScrollBarVisibility="Auto"
-                            HorizontalScrollMode="Disabled"
-                            HorizontalScrollBarVisibility="Disabled">
-                            <ItemsControl ItemsSource="{x:Bind ViewModel.LogLines, Mode=OneWay}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate x:DataType="viewmodels:LogLine">
-                                        <TextBlock
-                                            FontFamily="Consolas"
-                                            FontSize="12"
-                                            LineHeight="18"
-                                            TextWrapping="Wrap"
-                                            Foreground="{ThemeResource TextFillColorPrimaryBrush}">
-                                            <Run
-                                                Text="{x:Bind Timestamp}"
-                                                Foreground="{ThemeResource LogTimestampBrush}" />
-                                            <Run
-                                                Text="{x:Bind Keyword}"
-                                                FontWeight="SemiBold"
-                                                Foreground="{x:Bind Severity, Converter={StaticResource LogSeverityToBrushConverter}}" />
-                                            <Run Text="{x:Bind Rest}" />
-                                        </TextBlock>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </ScrollViewer>
-                    </Grid>
+                            <!-- Log content: monospaced, syntax-coloured, auto-scrolling -->
+                            <ScrollViewer
+                                Grid.Row="1"
+                                x:Name="LogScrollViewer"
+                                Padding="16,12"
+                                VerticalScrollMode="Auto"
+                                VerticalScrollBarVisibility="Auto"
+                                HorizontalScrollMode="Disabled"
+                                HorizontalScrollBarVisibility="Disabled">
+                                <ItemsControl ItemsSource="{x:Bind ViewModel.LogLines, Mode=OneWay}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="viewmodels:LogLine">
+                                            <TextBlock
+                                                FontFamily="Consolas"
+                                                FontSize="12"
+                                                LineHeight="18"
+                                                TextWrapping="Wrap"
+                                                Foreground="{ThemeResource TextFillColorPrimaryBrush}">
+                                                <Run
+                                                    Text="{x:Bind Timestamp}"
+                                                    Foreground="{ThemeResource LogTimestampBrush}" />
+                                                <Run
+                                                    Text="{x:Bind Keyword}"
+                                                    FontWeight="SemiBold"
+                                                    Foreground="{x:Bind Severity, Converter={StaticResource LogSeverityToBrushConverter}}" />
+                                                <Run Text="{x:Bind Rest}" />
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Grid>
+                    </Border>
                 </Grid>
                 </Border>
             </Grid>
@@ -424,7 +478,7 @@
 
                     <ProgressBar
                         Grid.Column="1"
-                        Height="6"
+                        Height="10"
                         HorizontalAlignment="Stretch"
                         VerticalAlignment="Center"
                         Margin="14,0"
@@ -449,9 +503,13 @@
                             </StackPanel>
                         </Button>
                         <Button
-                            Content="Cancel"
                             Command="{x:Bind ViewModel.CancelCommand}"
-                            IsEnabled="{x:Bind ViewModel.IsBusy, Mode=OneWay}" />
+                            IsEnabled="{x:Bind ViewModel.IsBusy, Mode=OneWay}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon Glyph="&#xE894;" FontSize="13" />
+                                <TextBlock Text="Cancel" FontSize="13" />
+                            </StackPanel>
+                        </Button>
                         <Button
                             Style="{StaticResource AccentButtonStyle}"
                             Command="{x:Bind ViewModel.StartCommand}"

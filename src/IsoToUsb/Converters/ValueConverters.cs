@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Media;
 using IsoToUsb.ViewModels;
+using System.Numerics;
 
 namespace IsoToUsb.Converters;
 
@@ -193,21 +194,22 @@ public sealed class LogSeverityToBrushConverter : IValueConverter
 public sealed class BoolToFocalOpacityConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)
-        => (value is bool b && b) ? 1.0 : 0.55;
+        => (value is bool b && b) ? 1.0 : 0.62;
     public object ConvertBack(object value, Type targetType, object parameter, string language)
         => throw new NotSupportedException();
 }
 
 /// <summary>
-/// Bool-to-opacity mapping for the accent halo that sits BEHIND a focal card.
-/// <c>true</c> shows the halo (1.0), <c>false</c> hides it (0.0). Pair with a
-/// translucent accent brush on the halo borders to get the "glow" effect from
-/// the design board.
+/// Maps focal state to a Vector3 Translation used with ThemeShadow to lift
+/// the focal card off the page. Mirrors the design board's
+/// <c>--shadow-focus: 0 22px 46px rgba(0,0,0,0.18)</c> by translating Z=32
+/// so WinUI's composition shadow draws a soft drop shadow underneath. The
+/// small -3 on Y matches the design's <c>--y: -5px</c> for "lifted".
 /// </summary>
-public sealed class BoolToHaloOpacityConverter : IValueConverter
+public sealed class BoolToFocalTranslationConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)
-        => (value is bool b && b) ? 1.0 : 0.0;
+        => (value is bool b && b) ? new Vector3(0, -3, 32) : Vector3.Zero;
     public object ConvertBack(object value, Type targetType, object parameter, string language)
         => throw new NotSupportedException();
 }
@@ -224,11 +226,10 @@ public sealed class BoolToFocalBorderBrushConverter : IValueConverter
         var resources = Application.Current?.Resources;
         if (value is bool focal && focal)
         {
-            if (resources is not null && resources.TryGetValue("AccentControlElevationBorderBrush", out var a) && a is Brush ab)
-            {
-                return ab;
-            }
-            return new SolidColorBrush(Color.FromArgb(0x80, 0x00, 0x67, 0xC0));
+            // Soft accent tint (mirrors design's color-mix(accent 34%, border)).
+            // SystemAccentColor at low alpha reads as "slightly accent-tinted
+            // border" rather than a hard accent stroke.
+            return new SolidColorBrush(GetAccent(resources)) { Opacity = 0.55 };
         }
 
         if (resources is not null && resources.TryGetValue("CardStrokeColorDefaultBrush", out var c) && c is Brush cb)
@@ -238,22 +239,30 @@ public sealed class BoolToFocalBorderBrushConverter : IValueConverter
         return new SolidColorBrush(Color.FromArgb(0x33, 0x80, 0x80, 0x80));
     }
 
+    private static Color GetAccent(Microsoft.UI.Xaml.ResourceDictionary? resources)
+    {
+        if (resources is not null && resources.TryGetValue("SystemAccentColor", out var v) && v is Color c)
+        {
+            return c;
+        }
+        return Color.FromArgb(0xFF, 0x00, 0x67, 0xC0);
+    }
+
     public object ConvertBack(object value, Type targetType, object parameter, string language)
         => throw new NotSupportedException();
 }
 
 /// <summary>
-/// Background brush picker for the focal card: focal uses the standard card
-/// fill (full opacity), inactive uses a flatter layer fill so it visually
-/// settles behind. Combined with <see cref="BoolToFocalOpacityConverter"/>
-/// for a layered focus effect.
+/// Background brush picker for the focal card. Focal: standard card fill.
+/// Inactive: a slightly washed-out secondary fill so the dimming reads
+/// without making the card look broken.
 /// </summary>
 public sealed class BoolToFocalBackgroundConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)
     {
         var resources = Application.Current?.Resources;
-        var key = (value is bool focal && focal) ? "CardBackgroundFillColorDefaultBrush" : "LayerFillColorDefaultBrush";
+        var key = (value is bool focal && focal) ? "CardBackgroundFillColorDefaultBrush" : "CardBackgroundFillColorSecondaryBrush";
         if (resources is not null && resources.TryGetValue(key, out var v) && v is Brush b)
         {
             return b;

@@ -178,7 +178,7 @@ public partial class MainViewModel : ObservableObject
             }
             if (IsBusy)
             {
-                return "Building... see progress on the right.";
+                return "Inputs locked. Cancel to make changes; otherwise the elevated worker owns the target drive.";
             }
             if (string.IsNullOrWhiteSpace(IsoPath))
             {
@@ -206,6 +206,10 @@ public partial class MainViewModel : ObservableObject
                     InfoBarSeverity.Error => "\uE783",   // Error
                     _ => "\uE946",                       // Info
                 };
+            }
+            if (IsBusy)
+            {
+                return "\uE72E"; // Lock
             }
             return "\uE946"; // Info
         }
