@@ -308,11 +308,11 @@ public sealed class PhaseStatusToRailBrushConverter : IValueConverter
         PhaseStatus.Failed => new SolidColorBrush(Color.FromArgb(0x1F, 0xC4, 0x2B, 0x1C)),
         // Cancelled mirrors the bottom Cancelled status pill (Warning/orange).
         PhaseStatus.Cancelled => new SolidColorBrush(Color.FromArgb(0x22, 0xC4, 0x6E, 0x00)),
-        // Pending matches design's .rail-node default: background = var(--card)
-        // (an opaque-ish card fill that reads as "ready", not "disabled"). The
-        // earlier grey-tinted translucent fill made every waiting node look
-        // greyed out vs the spec.
-        _ => new SolidColorBrush(Color.FromArgb(0xCC, 0xFF, 0xFF, 0xFF)),
+        // Pending matches design's .rail-node default: background = var(--card).
+        // ResolveThemeBrush walks WinUI's theme dictionaries so this stays
+        // legible on both light and dark themes (the previous hardcoded
+        // #FFFFFFCC made every pending circle a white blob in dark mode).
+        _ => ResolveThemeBrush("CardBackgroundFillColorDefaultBrush", 0xCC, 0xFF, 0xFF, 0xFF),
     };
 
     private static SolidColorBrush NodeBorder(PhaseStatus s) => s switch
@@ -321,11 +321,10 @@ public sealed class PhaseStatusToRailBrushConverter : IValueConverter
         PhaseStatus.Done => new SolidColorBrush(Color.FromArgb(0x90, 0x10, 0x80, 0x3C)),
         PhaseStatus.Failed => new SolidColorBrush(Color.FromArgb(0xA0, 0xC4, 0x2B, 0x1C)),
         PhaseStatus.Cancelled => new SolidColorBrush(Color.FromArgb(0xA0, 0xC4, 0x6E, 0x00)),
-        PhaseStatus.Skipped => new SolidColorBrush(Color.FromArgb(0x40, 0x80, 0x80, 0x80)),
-        // Matches design's --border-strong (rgba(0,0,0,0.10) light /
-        // rgba(255,255,255,0.14) dark). A neutral mid-grey with ~40% alpha
-        // reads correctly against either theme.
-        _ => new SolidColorBrush(Color.FromArgb(0x66, 0x80, 0x80, 0x80)),
+        // Skipped + Pending use WinUI's theme-aware control-stroke (matches
+        // design's --border-strong: rgba(0,0,0,0.10) light / rgba(255,255,255,0.14) dark).
+        PhaseStatus.Skipped => ResolveThemeBrush("ControlStrokeColorDefaultBrush", 0x40, 0x80, 0x80, 0x80),
+        _ => ResolveThemeBrush("ControlStrokeColorDefaultBrush", 0x66, 0x80, 0x80, 0x80),
     };
 
     private static SolidColorBrush NodeForeground(PhaseStatus s) => s switch
@@ -334,10 +333,11 @@ public sealed class PhaseStatusToRailBrushConverter : IValueConverter
         PhaseStatus.Done => new SolidColorBrush(Color.FromArgb(0xFF, 0x6C, 0xCB, 0x5F)),
         PhaseStatus.Failed => new SolidColorBrush(Color.FromArgb(0xFF, 0xFF, 0x99, 0x9A)),
         PhaseStatus.Cancelled => new SolidColorBrush(Color.FromArgb(0xFF, 0xC4, 0x6E, 0x00)),
-        PhaseStatus.Skipped => new SolidColorBrush(Color.FromArgb(0x80, 0xBB, 0xBB, 0xBB)),
-        // Matches design's --fg3 (#8A8A8A light / #909090 dark) — an opaque
-        // medium grey that reads as "muted but not disabled".
-        _ => new SolidColorBrush(Color.FromArgb(0xFF, 0x8A, 0x8A, 0x8A)),
+        // Skipped uses WinUI's disabled-text brush (theme-aware muted).
+        PhaseStatus.Skipped => ResolveThemeBrush("TextFillColorDisabledBrush", 0x80, 0xBB, 0xBB, 0xBB),
+        // Pending matches design's --fg3 — WinUI's TextFillColorTertiaryBrush
+        // is the theme-aware "muted but not disabled" body text colour.
+        _ => ResolveThemeBrush("TextFillColorTertiaryBrush", 0xFF, 0x8A, 0x8A, 0x8A),
     };
 
     private static SolidColorBrush LabelForeground(PhaseStatus s) => s switch
@@ -346,9 +346,43 @@ public sealed class PhaseStatusToRailBrushConverter : IValueConverter
         PhaseStatus.Done => new SolidColorBrush(Color.FromArgb(0xFF, 0x6C, 0xCB, 0x5F)),
         PhaseStatus.Failed => new SolidColorBrush(Color.FromArgb(0xFF, 0xFF, 0x99, 0x9A)),
         PhaseStatus.Cancelled => new SolidColorBrush(Color.FromArgb(0xFF, 0xC4, 0x6E, 0x00)),
-        PhaseStatus.Skipped => new SolidColorBrush(Color.FromArgb(0x80, 0xBB, 0xBB, 0xBB)),
-        _ => new SolidColorBrush(Color.FromArgb(0xFF, 0x8A, 0x8A, 0x8A)),
+        PhaseStatus.Skipped => ResolveThemeBrush("TextFillColorDisabledBrush", 0x80, 0xBB, 0xBB, 0xBB),
+        _ => ResolveThemeBrush("TextFillColorTertiaryBrush", 0xFF, 0x8A, 0x8A, 0x8A),
     };
+
+    /// <summary>
+    /// Looks up a WinUI standard theme brush by key. WinUI keeps theme
+    /// dictionaries indexed by the current theme, so this returns the
+    /// light-mode brush in light mode and the dark-mode brush in dark mode
+    /// without us having to redeclare per-theme variants. If the lookup
+    /// fails (or returns a non-SolidColorBrush such as an AcrylicBrush we
+    /// can't safely reuse), we fall back to a hardcoded ARGB so the rail
+    /// always renders something.
+    /// </summary>
+    /// <remarks>
+    /// Note: WinUI does not re-evaluate IValueConverter outputs on a live
+    /// theme switch. A user who toggles the OS theme while a build is in
+    /// flight may see the pending rail nodes keep their pre-switch colour
+    /// until the next phase status change. The rail UI is only visible
+    /// during a build, so this is an accepted limitation.
+    /// </remarks>
+    private static SolidColorBrush ResolveThemeBrush(string key, byte a, byte r, byte g, byte b)
+    {
+        try
+        {
+            if (Application.Current?.Resources is { } res
+                && res.TryGetValue(key, out var raw)
+                && raw is SolidColorBrush brush)
+            {
+                return brush;
+            }
+        }
+        catch
+        {
+            // Resources may be inaccessible in design-time or test contexts.
+        }
+        return new SolidColorBrush(Color.FromArgb(a, r, g, b));
+    }
 
     public object ConvertBack(object value, Type targetType, object parameter, string language)
         => throw new NotSupportedException();
