@@ -590,12 +590,18 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
-    /// <summary>Marks every still-Pending phase with the given status (Skipped on cancel/fail).</summary>
+    /// <summary>
+    /// Marks every still-Pending phase with the given status, and also demotes the
+    /// currently-Running phase (if any) to the same status. Used on cancel to stop
+    /// the active phase's running glow + progress ring. The failure paths call
+    /// <see cref="MarkRunningPhaseFailed"/> first, so the Running phase has already
+    /// transitioned to Failed by the time this method runs in those paths.
+    /// </summary>
     private void MarkRemainingPhases(PhaseStatus status)
     {
         foreach (var phase in Phases)
         {
-            if (phase.Status == PhaseStatus.Pending)
+            if (phase.Status == PhaseStatus.Pending || phase.Status == PhaseStatus.Running)
             {
                 phase.Status = status;
             }
