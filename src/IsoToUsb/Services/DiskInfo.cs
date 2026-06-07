@@ -15,6 +15,9 @@ namespace IsoToUsb.Services;
 /// <param name="IsReadOnly"><c>true</c> if the disk is write-protected.</param>
 /// <param name="MediaType">Underlying media type from <c>MSFT_PhysicalDisk</c>;
 /// see <see cref="MediaTypes"/>. <c>0</c> if unknown.</param>
+/// <param name="DriveLetters">Comma-separated Windows drive letters currently
+/// assigned to partitions on this disk (e.g. <c>"E:"</c> or <c>"E:, F:"</c>),
+/// or empty string when the disk has no mounted partitions.</param>
 public sealed record DiskInfo(
     uint Number,
     string FriendlyName,
@@ -24,7 +27,8 @@ public sealed record DiskInfo(
     bool IsSystem,
     bool IsBoot,
     bool IsReadOnly,
-    ushort MediaType = 0)
+    ushort MediaType = 0,
+    string DriveLetters = "")
 {
     /// <summary>Disk reports BusType == USB.</summary>
     public bool IsUsbBus => BusType == BusTypes.Usb;
@@ -34,6 +38,15 @@ public sealed record DiskInfo(
 
     /// <summary>Human-friendly size, e.g. "32.0 GB".</summary>
     public string SizeDisplay => FormatBytes(SizeBytes);
+
+    /// <summary>
+    /// Drive-letter fragment safe to inline in UI strings: <c>" (E:)"</c>,
+    /// <c>" (E:, F:)"</c>, or empty when no letters are assigned. The leading
+    /// space lets the binding concatenate cleanly between the disk number
+    /// and the friendly name without leaving a stray <c>()</c> behind.
+    /// </summary>
+    public string DriveLettersTag =>
+        string.IsNullOrEmpty(DriveLetters) ? string.Empty : $" ({DriveLetters})";
 
     private static string FormatBytes(ulong bytes)
     {

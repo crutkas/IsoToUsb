@@ -99,6 +99,14 @@ public sealed class DiskPartitioner
             .AppendLine("convert mbr noerr")
             .AppendLine("convert gpt")
             .AppendLine(createPartition)
+            // `rescan` forces Windows' Volume Manager to enumerate volumes for
+            // the partition we just created. Without it, fast USB 3.0 sticks
+            // (and ARM64 ISOs that take an extra moment to settle) fail
+            // `format` with "There is no volume selected" because diskpart's
+            // partition focus has no associated volume object yet.
+            // `rescan` may lose focus, so re-select disk + partition after.
+            .AppendLine("rescan")
+            .AppendLine($"select disk {diskNumber.ToString(System.Globalization.CultureInfo.InvariantCulture)}")
             .AppendLine("select partition 1")
             .AppendLine($"format fs=fat32 quick label=\"{label}\"")
             .AppendLine("assign")

@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.UI.Controls.Dialogs;
@@ -35,7 +36,12 @@ internal static class Win32FilePicker
         {
             var ofn = new OPENFILENAMEW
             {
-                lStructSize = (uint)sizeof(OPENFILENAMEW),
+                // OPENFILENAMEW contains delegate / PWSTR-wrapped fields, so the
+                // C# `sizeof()` operator reports the managed CLR layout (which
+                // doesn't match what GetOpenFileNameW expects and fails with
+                // CDERR_STRUCTSIZE = 0x0001). Marshal.SizeOf returns the
+                // unmanaged size (152 bytes on x64), which is what the OS wants.
+                lStructSize = (uint)Marshal.SizeOf<OPENFILENAMEW>(),
                 hwndOwner = new HWND(ownerHwnd),
                 lpstrFilter = pFilter,
                 lpstrFile = pBuffer,

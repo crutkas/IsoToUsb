@@ -28,6 +28,7 @@ public static class UsbDriveEnumerator
     {
         var scope = new ManagementScope(StorageNamespace);
         var mediaTypes = QueryMediaTypes(scope);
+        var driveLetters = QueryDriveLetters(scope);
 
         var query = new ObjectQuery(
             "SELECT Number, FriendlyName, SerialNumber, Size, BusType, IsSystem, IsBoot, IsReadOnly FROM MSFT_Disk");
@@ -39,7 +40,7 @@ public static class UsbDriveEnumerator
         {
             using (disk)
             {
-                results.Add(MapToDiskInfo(disk, mediaTypes));
+                results.Add(MapToDiskInfo(disk, mediaTypes, driveLetters));
             }
         }
         return results;
@@ -73,13 +74,19 @@ public static class UsbDriveEnumerator
 
     internal static DiskInfo MapToDiskInfo(
         ManagementBaseObject mbo,
-        IReadOnlyDictionary<uint, ushort>? mediaTypes = null)
+        IReadOnlyDictionary<uint, ushort>? mediaTypes = null,
+        IReadOnlyDictionary<uint, string>? driveLetters = null)
     {
         var number = ConvertTo<uint>(mbo["Number"]);
         ushort mediaType = MediaTypes.Unspecified;
         if (mediaTypes is not null && mediaTypes.TryGetValue(number, out var mt))
         {
             mediaType = mt;
+        }
+        string letters = string.Empty;
+        if (driveLetters is not null && driveLetters.TryGetValue(number, out var dl))
+        {
+            letters = dl;
         }
         return new DiskInfo(
             Number: number,
@@ -90,7 +97,8 @@ public static class UsbDriveEnumerator
             IsSystem: ConvertTo<bool>(mbo["IsSystem"]),
             IsBoot: ConvertTo<bool>(mbo["IsBoot"]),
             IsReadOnly: ConvertTo<bool>(mbo["IsReadOnly"]),
-            MediaType: mediaType);
+            MediaType: mediaType,
+            DriveLetters: letters);
     }
 
     /// <summary>
@@ -128,6 +136,59 @@ public static class UsbDriveEnumerator
         {
         }
         return map;
+    }
+
+    /// <summary>
+    /// Builds a map from <c>MSFT_Disk.Number</c> → comma-separated list of
+    /// assigned drive letters (e.g. <c>"E:"</c> or <c>"E:, F:"</c>). Disks
+    /// with no mounted partitions are absent from the map. Failures are
+    /// swallowed so enumeration never breaks over a cosmetic signal.
+    /// </summary>
+    private static IReadOnlyDictionary<uint, string> QueryDriveLetters(ManagementScope scope)
+    {
+        var map = new Dictionary<uint, List<char>>();
+        try
+        {
+            var query = new ObjectQuery("SELECT DiskNumber, DriveLetter FROM MSFT_Partition");
+            using var searcher = new ManagementObjectSearcher(scope, query);
+            using var collection = searcher.Get();
+            foreach (ManagementObject part in collection)
+            {
+                using (part)
+                {
+                    var diskNumber = ConvertTo<uint>(part["DiskNumber"]);
+                    var ch = part["DriveLetter"] switch
+                    {
+                        char c => c,
+                        ushort u => (char)u,
+                        byte b => (char)b,
+                        _ => '\0',
+                    };
+                    if (ch < 'A' || ch > 'Z')
+                    {
+                        continue;
+                    }
+                    if (!map.TryGetValue(diskNumber, out var letters))
+                    {
+                        letters = new List<char>(capacity: 2);
+                        map[diskNumber] = letters;
+                    }
+                    if (!letters.Contains(ch))
+                    {
+                        letters.Add(ch);
+                    }
+                }
+            }
+        }
+        catch (ManagementException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
+        return map.ToDictionary(
+            kvp => kvp.Key,
+            kvp => string.Join(", ", kvp.Value.Order().Select(c => $"{c}:")));
     }
 
     private static T ConvertTo<T>(object? value) where T : struct

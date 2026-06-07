@@ -19,3 +19,4 @@ IOCTL_STORAGE_EJECT_MEDIA
 ChangeWindowMessageFilterEx
 GetOpenFileNameW
 CommDlgExtendedError
+GetDpiForWindow
