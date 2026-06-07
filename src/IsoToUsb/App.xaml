@@ -55,10 +55,6 @@
             <conv:BoolToFocalBackgroundConverter x:Key="BoolToFocalBackgroundConverter" />
             <conv:PhaseStatusToRailBrushConverter x:Key="PhaseStatusToRailBrushConverter" />
 
-            <!-- Soft 5px accent ring drawn behind the active rail node.
-                 Mirrors the design board's
-                 box-shadow:0 0 0 5px color-mix(accent 10%, transparent). -->
-            <SolidColorBrush x:Key="RailActiveGlowBrush" Color="{ThemeResource SystemAccentColor}" Opacity="0.16" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

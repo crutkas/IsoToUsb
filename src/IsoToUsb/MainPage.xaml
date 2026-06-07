@@ -30,12 +30,6 @@
                     Height="30"
                     HorizontalAlignment="Center">
                     <Border
-                        Width="44"
-                        Height="44"
-                        CornerRadius="22"
-                        Background="{StaticResource RailActiveGlowBrush}"
-                        Visibility="{x:Bind IsRunning, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
-                    <Border
                         Width="30"
                         Height="30"
                         CornerRadius="15"
