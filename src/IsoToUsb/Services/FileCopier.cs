@@ -1,5 +1,7 @@
 namespace IsoToUsb.Services;
 
+using System.Diagnostics;
+
 /// <summary>Snapshot reported to a copy progress observer.</summary>
 public sealed record CopyProgress(long BytesDone, long BytesTotal, int FilesDone, int FilesTotal, string CurrentRelativePath);
 
@@ -38,7 +40,11 @@ public sealed class FileCopier
 
     /// <summary>
     /// Recursively copy <paramref name="sourceRoot"/> into <paramref name="destinationRoot"/>.
-    /// <paramref name="progress"/> fires after each file completes.
+    /// <paramref name="progress"/> fires <em>during</em> each file's byte
+    /// stream (throttled to ~5 Hz) AND once at the end of each file. The
+    /// intra-file reports matter for the WIM-split phase, where the per-SWM
+    /// files are ~4 GB each and would otherwise leave the UI stuck at 50%
+    /// for 30-60 seconds at a time.
     /// Returns the list of skipped files (relative paths).
     /// </summary>
     public async Task<IReadOnlyList<string>> CopyAsync(
@@ -76,6 +82,12 @@ public sealed class FileCopier
         long bytesDone = 0;
         int filesDone = 0;
 
+        // One shared buffer across the whole copy to keep GC pressure flat
+        // on large WIM/SWM streams.
+        var buffer = new byte[BufferSize];
+        var reportEveryTicks = Stopwatch.Frequency / 5; // ~200 ms
+        var lastReportTs = Stopwatch.GetTimestamp() - reportEveryTicks; // fire on first chunk
+
         foreach (var src in toCopy)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -86,11 +98,25 @@ public sealed class FileCopier
             await using (var inStream = new FileStream(src.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, BufferSize, FileOptions.SequentialScan | FileOptions.Asynchronous))
             await using (var outStream = new FileStream(dest, FileMode.Create, FileAccess.Write, FileShare.None, BufferSize, FileOptions.Asynchronous))
             {
-                await inStream.CopyToAsync(outStream, BufferSize, cancellationToken).ConfigureAwait(false);
+                int read;
+                while ((read = await inStream.ReadAsync(buffer.AsMemory(0, BufferSize), cancellationToken).ConfigureAwait(false)) > 0)
+                {
+                    await outStream.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
+                    bytesDone += read;
+
+                    var now = Stopwatch.GetTimestamp();
+                    if (now - lastReportTs >= reportEveryTicks)
+                    {
+                        lastReportTs = now;
+                        progress?.Report(new CopyProgress(bytesDone, totalBytes, filesDone, toCopy.Count, rel));
+                    }
+                }
             }
 
-            bytesDone += src.Length;
             filesDone++;
+            // Always emit a per-file completion event so the count + final
+            // byte total are exact at file boundaries, regardless of throttle.
+            lastReportTs = Stopwatch.GetTimestamp();
             progress?.Report(new CopyProgress(bytesDone, totalBytes, filesDone, toCopy.Count, rel));
         }
 

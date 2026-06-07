@@ -123,4 +123,58 @@ public class FileCopierTests
             dst.Delete(recursive: true);
         }
     }
+
+    [TestMethod]
+    public async Task Copy_Reports_Intra_File_Progress_For_Large_Files()
+    {
+        // The split phase copies 4 GB SWM chunks. Before the chunked-progress
+        // fix, FileCopier.CopyAsync only reported once per file, which meant
+        // the UI sat at 50% for 30-60 seconds per 4 GB SWM. This test pins
+        // that we now emit byte-progress events with monotonically growing
+        // BytesDone, and that the final report has BytesDone == BytesTotal.
+        var src = Directory.CreateTempSubdirectory("largesrc_");
+        var dst = Directory.CreateTempSubdirectory("largedst_");
+        try
+        {
+            // 4 MiB is enough to force several 1 MiB read/write loop turns.
+            // (We don't need a real 4 GB file — that would slow the suite.)
+            var bigPath = Path.Combine(src.FullName, "install.swm");
+            using (var fs = new FileStream(bigPath, FileMode.Create, FileAccess.Write))
+            {
+                fs.SetLength(4L * 1024 * 1024);
+            }
+
+            var reports = new List<CopyProgress>();
+            // Use a synchronous callback rather than Progress<T> (which
+            // marshals through the SynchronizationContext) so reports
+            // arrive deterministically on this thread before we assert.
+            var progress = new ImmediateProgress<CopyProgress>(reports.Add);
+            var copier = new FileCopier();
+            await copier.CopyAsync(src.FullName, dst.FullName, progress);
+
+            Assert.IsTrue(reports.Count >= 1, "FileCopier should report at least once.");
+
+            // Final report must be exactly 100% for the file.
+            var last = reports[^1];
+            Assert.AreEqual(last.BytesTotal, last.BytesDone, "Final BytesDone must equal BytesTotal.");
+            Assert.AreEqual(1, last.FilesDone);
+            Assert.AreEqual(1, last.FilesTotal);
+
+            // BytesDone is non-decreasing — progress never goes backwards.
+            for (int i = 1; i < reports.Count; i++)
+            {
+                Assert.IsTrue(reports[i].BytesDone >= reports[i - 1].BytesDone, $"BytesDone went backwards at index {i}.");
+            }
+        }
+        finally
+        {
+            src.Delete(recursive: true);
+            dst.Delete(recursive: true);
+        }
+    }
+
+    private sealed class ImmediateProgress<T>(Action<T> handler) : IProgress<T>
+    {
+        public void Report(T value) => handler(value);
+    }
 }

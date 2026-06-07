@@ -86,7 +86,10 @@ public sealed class UsbBuildPipeline
         var copyProgress = new Progress<CopyProgress>(p =>
         {
             var pct = p.BytesTotal > 0 ? (int)(p.BytesDone * 100 / p.BytesTotal) : 0;
-            progress?.Report(new PipelineProgress(PipelineStage.CopyFiles, pct, $"{p.FilesDone}/{p.FilesTotal} {p.CurrentRelativePath}"));
+            // 1-based "currently working on file X of N" — much friendlier
+            // than "0/N done" while the first file is mid-stream.
+            var current = Math.Min(p.FilesDone + 1, p.FilesTotal);
+            progress?.Report(new PipelineProgress(PipelineStage.CopyFiles, pct, $"{current}/{p.FilesTotal} {p.CurrentRelativePath}"));
         });
         var skipped = await copier.CopyAsync(mounted.MountRoot, usbRoot, copyProgress, cancellationToken).ConfigureAwait(false);
 
@@ -165,10 +168,17 @@ public sealed class UsbBuildPipeline
                         }
                         var copyPct = (int)(p.BytesDone * 100 / p.BytesTotal);
                         var overallPct = 50 + copyPct / 2;
+                        // 1-based "currently working on chunk X of N", with a
+                        // running MB count so the user can see a 4 GB SWM
+                        // making byte-level progress mid-copy (FileCopier
+                        // emits ~5 reports/s during the stream).
+                        var current = Math.Min(p.FilesDone + 1, p.FilesTotal);
+                        var doneMb = p.BytesDone / (1024 * 1024);
+                        var totalMb = p.BytesTotal / (1024 * 1024);
                         progress?.Report(new PipelineProgress(
                             PipelineStage.SplitInstallWim,
                             overallPct,
-                            $"copy {p.FilesDone}/{p.FilesTotal} {p.CurrentRelativePath}"));
+                            $"copy {current}/{p.FilesTotal} {p.CurrentRelativePath} · {doneMb}/{totalMb} MB"));
                     });
                     Directory.CreateDirectory(finalDestDir);
                     await swmCopier
