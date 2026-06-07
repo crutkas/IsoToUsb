@@ -252,8 +252,12 @@ public sealed class UsbBuildPipeline
                 }
                 finally
                 {
-                    // Best-effort cleanup; never block on this.
-                    try { Directory.Delete(tempRoot, recursive: true); } catch { }
+                    // AV / indexer / pending I/O can briefly hold handles on
+                    // the freshly written SWM chunks. Retry with small backoff
+                    // so we don't leak multi-GB temp dirs in the common case,
+                    // and surface a Warning to the log if the final retry
+                    // can't reclaim the space.
+                    await TryDeleteTempDirAsync(tempRoot, progress).ConfigureAwait(false);
                 }
             }
         }
@@ -278,6 +282,64 @@ public sealed class UsbBuildPipeline
     }
 
     private readonly record struct RejectedFile(string RelativePath, long SizeBytes);
+
+    /// <summary>
+    /// Best-effort recursive delete with backoff. AV scanners and the
+    /// Windows Search indexer can briefly hold handles on the freshly
+    /// written split chunks, so a single Delete attempt often fails right
+    /// after a 6 GB SWM split and silently leaks multi-GB of %TEMP%.
+    /// </summary>
+    /// <remarks>
+    /// Runs in the cleanup finally block so it MUST NOT throw. If every
+    /// retry fails we emit a Warning-class PipelineProgress so the user
+    /// can see the path that leaked and remove it manually.
+    /// </remarks>
+    private static async Task TryDeleteTempDirAsync(string tempRoot, IProgress<PipelineProgress>? progress)
+    {
+        const int MaxAttempts = 5;
+        Exception? last = null;
+        for (int attempt = 1; attempt <= MaxAttempts; attempt++)
+        {
+            try
+            {
+                if (!Directory.Exists(tempRoot))
+                {
+                    return;
+                }
+                Directory.Delete(tempRoot, recursive: true);
+                return;
+            }
+            catch (Exception ex)
+            {
+                last = ex;
+                if (attempt == MaxAttempts)
+                {
+                    break;
+                }
+                try
+                {
+                    await Task.Delay(TimeSpan.FromMilliseconds(200 * attempt)).ConfigureAwait(false);
+                }
+                catch
+                {
+                    // Don't propagate cleanup-loop wait failures.
+                }
+            }
+        }
+
+        try
+        {
+            progress?.Report(new PipelineProgress(
+                PipelineStage.SplitInstallWim,
+                -1,
+                $"Warning: could not delete temp split dir '{tempRoot}': {last?.Message}. " +
+                "Remove it manually to reclaim disk space."));
+        }
+        catch
+        {
+            // Reporting must never escape cleanup.
+        }
+    }
 
     /// <summary>
     /// Ensures the drive that hosts <paramref name="anyPathOnDrive"/> has at
