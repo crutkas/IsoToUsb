@@ -231,6 +231,16 @@ public sealed class UsbBuildPipeline
                     await swmCopier
                         .CopyAsync(tempRoot, finalDestDir, swmCopyProgress, cancellationToken)
                         .ConfigureAwait(false);
+
+                    // After every SWM chunk copy lands, cross-check that
+                    // every chunk DISM produced in temp now exists on the
+                    // USB at the same byte count. FileCopier's per-file
+                    // length check already throws on a truncated copy, but
+                    // it can't catch the case where DISM produces N chunks
+                    // and only N-1 get enumerated (race, AV lock, etc.).
+                    // This is the only chance we get to detect that BEFORE
+                    // Windows Setup detonates with 0x8007000D mid-install.
+                    VerifyAllSwmChunksLanded(tempRoot, finalDestDir, rel);
                 }
                 finally
                 {
@@ -414,5 +424,58 @@ public sealed class UsbBuildPipeline
             }
         }
         return rejects;
+    }
+
+    /// <summary>
+    /// After the SWM split-and-copy pair, confirm that every chunk DISM
+    /// produced in <paramref name="tempRoot"/> exists on the USB at
+    /// <paramref name="finalDestDir"/> with the exact same byte count.
+    /// FileCopier's per-file size check would already throw on a truncated
+    /// chunk, but this catches the orthogonal "missing chunk entirely"
+    /// failure mode (DISM produced install.swm + install2.swm + install3.swm
+    /// but only the first two landed on the USB). Throws IOException with
+    /// full diagnostic context so the pipeline aborts BEFORE marking the
+    /// build green.
+    /// </summary>
+    internal static void VerifyAllSwmChunksLanded(string tempRoot, string finalDestDir, string sourceRel)
+    {
+        var tempChunks = new DirectoryInfo(tempRoot)
+            .EnumerateFiles("*", SearchOption.AllDirectories)
+            .ToDictionary(f => Path.GetRelativePath(tempRoot, f.FullName), f => f.Length, StringComparer.OrdinalIgnoreCase);
+
+        long tempTotal = tempChunks.Values.Sum();
+        long destTotal = 0;
+        var missing = new List<string>();
+        var sizeMismatch = new List<string>();
+
+        foreach (var (rel, expectedLen) in tempChunks)
+        {
+            var destPath = Path.Combine(finalDestDir, rel);
+            if (!File.Exists(destPath))
+            {
+                missing.Add($"{rel} (expected {expectedLen:N0} bytes)");
+                continue;
+            }
+            var actualLen = new FileInfo(destPath).Length;
+            destTotal += actualLen;
+            if (actualLen != expectedLen)
+            {
+                sizeMismatch.Add($"{rel} (expected {expectedLen:N0}, got {actualLen:N0})");
+            }
+        }
+
+        if (missing.Count == 0 && sizeMismatch.Count == 0)
+        {
+            return;
+        }
+
+        throw new IOException(
+            $"After splitting '{sourceRel}' into {tempChunks.Count} chunk(s) " +
+            $"({tempTotal:N0} bytes total) and copying to the USB, the destination " +
+            $"is incomplete (USB total: {destTotal:N0} bytes). " +
+            (missing.Count > 0 ? $"Missing chunks: {string.Join(", ", missing)}. " : string.Empty) +
+            (sizeMismatch.Count > 0 ? $"Truncated chunks: {string.Join(", ", sizeMismatch)}. " : string.Empty) +
+            "This would cause Windows Setup to fail with 0x8007000D mid-install. " +
+            "Refusing to mark the build complete.");
     }
 }

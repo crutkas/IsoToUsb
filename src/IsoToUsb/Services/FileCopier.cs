@@ -95,6 +95,7 @@ public sealed class FileCopier
             var dest = Path.Combine(destinationRoot, rel);
             Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
 
+            var expectedBytes = src.Length;
             await using (var inStream = new FileStream(src.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, BufferSize, FileOptions.SequentialScan | FileOptions.Asynchronous))
             await using (var outStream = new FileStream(dest, FileMode.Create, FileAccess.Write, FileShare.None, BufferSize, FileOptions.Asynchronous))
             {
@@ -111,6 +112,36 @@ public sealed class FileCopier
                         progress?.Report(new CopyProgress(bytesDone, totalBytes, filesDone, toCopy.Count, rel));
                     }
                 }
+
+                // Force the OS to flush BOTH the .NET-side buffer AND the
+                // underlying file-system / device caches to media before we
+                // close the handle and trust the on-disk size. Without
+                // flushToDisk:true, FAT32 on a removable USB stick can hold
+                // multi-GB of pending writes in its write cache and report a
+                // file size that doesn't reflect what's actually committed
+                // to flash. This was the proximate cause of a silent
+                // install2.swm truncation that bricked a Windows Setup at
+                // 0x8007000D (ERROR_INVALID_DATA) on the user's first real
+                // build (2026-06-07): 3.55 GiB chunk was reported as 1.17
+                // GiB on the USB and the pipeline marked the build green.
+                outStream.Flush(flushToDisk: true);
+            }
+
+            // Belt-and-suspenders: after the streams close + flush, re-stat
+            // the destination and refuse to advance if the byte count
+            // doesn't match the source. A short file here means the OS lost
+            // data in flight (USB controller, FAT32 cache, AV, etc.). We'd
+            // rather hard-fail the build than silently ship a corrupt USB
+            // that fails Windows Setup mid-image-apply.
+            var actualBytes = new FileInfo(dest).Length;
+            if (actualBytes != expectedBytes)
+            {
+                throw new IOException(
+                    $"Copy of '{rel}' produced {actualBytes:N0} bytes on the destination " +
+                    $"but the source is {expectedBytes:N0} bytes. The destination drive may " +
+                    $"have run out of space, been ejected mid-write, or returned a write " +
+                    $"error that the OS silently truncated. Refusing to continue with a " +
+                    $"corrupted file in place.");
             }
 
             filesDone++;

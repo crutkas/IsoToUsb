@@ -210,4 +210,46 @@ public class FileCopierTests
     {
         public void Report(T value) => handler(value);
     }
+
+    [TestMethod]
+    public async Task Copy_Produces_Destination_Exactly_Source_Size()
+    {
+        // Defense against the install2.swm silent-truncation bug
+        // (2026-06-07): FileCopier MUST produce a destination file whose
+        // length exactly equals the source length. The post-write check
+        // inside CopyAsync hard-fails on mismatch; on success, the file
+        // on disk must round-trip cleanly.
+        var src = Directory.CreateTempSubdirectory("exactsrc_");
+        var dst = Directory.CreateTempSubdirectory("exactdst_");
+        try
+        {
+            // Three files of varied non-power-of-two sizes that span
+            // multiple 1 MiB read buffers — chosen to flush out off-by-one
+            // bugs in the read/write loop.
+            var sizes = new Dictionary<string, long>
+            {
+                ["small.bin"] = 7L,
+                ["medium.bin"] = (1L * 1024 * 1024) + 123, // 1 MiB + 123
+                ["large.bin"] = (3L * 1024 * 1024) + 999,  // 3 MiB + 999
+            };
+            foreach (var (name, len) in sizes)
+            {
+                using var fs = new FileStream(Path.Combine(src.FullName, name), FileMode.Create, FileAccess.Write);
+                fs.SetLength(len);
+            }
+
+            await new FileCopier().CopyAsync(src.FullName, dst.FullName);
+
+            foreach (var (name, expected) in sizes)
+            {
+                var actual = new FileInfo(Path.Combine(dst.FullName, name)).Length;
+                Assert.AreEqual(expected, actual, $"{name}: copy must produce exact source size.");
+            }
+        }
+        finally
+        {
+            src.Delete(recursive: true);
+            dst.Delete(recursive: true);
+        }
+    }
 }
