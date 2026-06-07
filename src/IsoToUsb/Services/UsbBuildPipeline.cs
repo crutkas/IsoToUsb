@@ -39,6 +39,14 @@ public sealed record PipelineProgress(PipelineStage Stage, int Percent, string M
 /// </summary>
 public sealed class UsbBuildPipeline
 {
+    /// <summary>
+    /// Coarse byte gate that decides when an in-flight copy emits a fresh
+    /// LOG line (vs. a silent progress-bar heartbeat). Roughly matches the
+    /// cadence DISM uses for its split output (a line every 200-500 MiB),
+    /// so multi-GB file copies show motion in the log without spamming.
+    /// </summary>
+    private const long LogByteGate = 256L * 1024 * 1024;
+
     public FileCopier FileCopier { get; init; } = new();
     public DiskPartitioner Partitioner { get; init; } = new();
     public DismSplitter Splitter { get; init; } = new();
@@ -96,26 +104,38 @@ public sealed class UsbBuildPipeline
         progress?.Report(new PipelineProgress(PipelineStage.CopyFiles, 0, "Copying ISO contents..."));
         var copier = new FileCopier { SkipPredicate = (file, rel) => FileCopier.ShouldSplitForFat32(file, rel) };
         string? lastLoggedCopyFile = null;
+        long lastLoggedCopyBytes = 0;
         var copyProgress = new Progress<CopyProgress>(p =>
         {
             var pct = p.BytesTotal > 0 ? (int)(p.BytesDone * 100 / p.BytesTotal) : 0;
             // 1-based "currently working on file X of N" — much friendlier
             // than "0/N done" while the first file is mid-stream.
             var current = Math.Min(p.FilesDone + 1, p.FilesTotal);
-            // FileCopier fires ~5 Hz during each file's byte stream. Only
-            // the FIRST report we see for a given file goes to the log;
-            // all subsequent reports for the same file are heartbeats that
-            // advance the progress bar and status pill but don't spam the
-            // log with 30+ identical "38/967 sources\boot.wim" lines.
-            var isHeartbeat = lastLoggedCopyFile == p.CurrentRelativePath;
-            if (!isHeartbeat)
+            var doneMb = p.BytesDone / (1024 * 1024);
+            var totalMb = p.BytesTotal / (1024 * 1024);
+            // FileCopier fires ~5 Hz during each file's byte stream. To keep
+            // the log readable we log the FIRST tick for a new file AND a
+            // milestone every LogByteGate (~256 MiB). Everything in between
+            // is a heartbeat that only advances the bar / status pill. Small
+            // files get exactly one log line; multi-GB SWMs get ~17 motion
+            // lines per 4 GB chunk so the user can see real progress in the
+            // log too (the previous behavior left install.swm stuck on one
+            // log line for 60+ seconds).
+            var fileChanged = lastLoggedCopyFile != p.CurrentRelativePath;
+            if (fileChanged)
             {
                 lastLoggedCopyFile = p.CurrentRelativePath;
+                lastLoggedCopyBytes = 0;
+            }
+            var isHeartbeat = !fileChanged && (p.BytesDone - lastLoggedCopyBytes) < LogByteGate;
+            if (!isHeartbeat)
+            {
+                lastLoggedCopyBytes = p.BytesDone;
             }
             progress?.Report(new PipelineProgress(
                 PipelineStage.CopyFiles,
                 pct,
-                $"{current}/{p.FilesTotal} {p.CurrentRelativePath}",
+                $"{current}/{p.FilesTotal} {p.CurrentRelativePath} · {doneMb}/{totalMb} MB",
                 isHeartbeat));
         });
         var skipped = await copier.CopyAsync(mounted.MountRoot, usbRoot, copyProgress, cancellationToken).ConfigureAwait(false);
@@ -188,6 +208,7 @@ public sealed class UsbBuildPipeline
                         $"Copying split chunks to USB..."));
                     var swmCopier = new FileCopier();
                     string? lastLoggedSwm = null;
+                    long lastLoggedSwmBytes = 0;
                     var swmCopyProgress = new Progress<CopyProgress>(p =>
                     {
                         if (p.BytesTotal <= 0)
@@ -203,13 +224,20 @@ public sealed class UsbBuildPipeline
                         var current = Math.Min(p.FilesDone + 1, p.FilesTotal);
                         var doneMb = p.BytesDone / (1024 * 1024);
                         var totalMb = p.BytesTotal / (1024 * 1024);
-                        // Same heartbeat-vs-log split as CopyFiles: one log
-                        // line per chunk file; intra-file ticks update the
-                        // status pill / bar but stay out of the log.
-                        var isHeartbeat = lastLoggedSwm == p.CurrentRelativePath;
-                        if (!isHeartbeat)
+                        // Same gate as CopyFiles: one log line per chunk
+                        // boundary plus one every ~256 MiB so a 6.86 GB
+                        // install.swm shows ~25 motion lines instead of a
+                        // single stuck "1/6863 MB" line for 60+ seconds.
+                        var fileChanged = lastLoggedSwm != p.CurrentRelativePath;
+                        if (fileChanged)
                         {
                             lastLoggedSwm = p.CurrentRelativePath;
+                            lastLoggedSwmBytes = 0;
+                        }
+                        var isHeartbeat = !fileChanged && (p.BytesDone - lastLoggedSwmBytes) < LogByteGate;
+                        if (!isHeartbeat)
+                        {
+                            lastLoggedSwmBytes = p.BytesDone;
                         }
                         progress?.Report(new PipelineProgress(
                             PipelineStage.SplitInstallWim,
