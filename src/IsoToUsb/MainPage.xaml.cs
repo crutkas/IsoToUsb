@@ -5,6 +5,7 @@ using IsoToUsb.Interop;
 using IsoToUsb.Services;
 using IsoToUsb.ViewModels;
 using System.Collections.Specialized;
+using System.ComponentModel;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage;
 
@@ -42,6 +43,12 @@ public sealed partial class MainPage : Page
         LogScrollViewer.ViewChanged += OnLogScrollViewChanged;
         ScrollLogToBottom();
 
+        // Mirror IsBusy / ProgressPercent / Status into the taskbar-button
+        // overlay so the icon shows a real progress bar (like Explorer's
+        // copy dialog) without the user having to keep the window in view.
+        ViewModel.PropertyChanged += OnViewModelPropertyChanged;
+        UpdateTaskbarProgress();
+
         // Re-enumerate when a USB stick is plugged in or pulled out so
         // the user doesn't have to click Refresh.
         try
@@ -60,11 +67,65 @@ public sealed partial class MainPage : Page
     {
         ViewModel.LogLines.CollectionChanged -= OnLogLinesChanged;
         LogScrollViewer.ViewChanged -= OnLogScrollViewChanged;
+        ViewModel.PropertyChanged -= OnViewModelPropertyChanged;
+        TaskbarProgress.Clear(App.WindowHandle);
         if (_hotPlugWatcher is not null)
         {
             _hotPlugWatcher.Changed -= OnHotPlugChanged;
             _hotPlugWatcher.Dispose();
             _hotPlugWatcher = null;
+        }
+    }
+
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        // Coarse filter — only the three props that affect the taskbar
+        // overlay. Other property changes (CanStart, status pill text,
+        // setup footer, etc.) don't need an ITaskbarList3 round-trip.
+        if (e.PropertyName is nameof(MainViewModel.IsBusy)
+                           or nameof(MainViewModel.ProgressPercent)
+                           or nameof(MainViewModel.Status))
+        {
+            UpdateTaskbarProgress();
+        }
+    }
+
+    private void UpdateTaskbarProgress()
+    {
+        var hwnd = App.WindowHandle;
+        if (hwnd == 0)
+        {
+            return;
+        }
+
+        // Map VM state -> overlay:
+        //   Building, 0%        -> indeterminate marquee (we know nothing yet)
+        //   Building, 1..100%   -> green progress with value
+        //   Done success/warning-> clear (don't keep a stale bar around)
+        //   Done error          -> solid red bar at 100%
+        if (ViewModel.IsBusy)
+        {
+            if (ViewModel.ProgressPercent <= 0)
+            {
+                TaskbarProgress.SetState(hwnd, TaskbarProgressState.Indeterminate);
+            }
+            else
+            {
+                TaskbarProgress.SetState(hwnd, TaskbarProgressState.Normal);
+                TaskbarProgress.SetValue(hwnd, ViewModel.ProgressPercent);
+            }
+            return;
+        }
+
+        switch (ViewModel.Status)
+        {
+            case StatusKind.Error:
+                TaskbarProgress.SetState(hwnd, TaskbarProgressState.Error);
+                TaskbarProgress.SetValue(hwnd, 100);
+                break;
+            default:
+                TaskbarProgress.Clear(hwnd);
+                break;
         }
     }
 
