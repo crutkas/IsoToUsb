@@ -109,7 +109,12 @@ public static class ElevatedWorkerLauncher
         Process? worker;
         try
         {
-            worker = Process.Start(psi)
+            // Process.Start with Verb=runas blocks the calling thread on the
+            // UAC consent dialog. If we call it directly from the UI thread,
+            // the whole app freezes (DispatcherQueue stops pumping) until the
+            // user clicks Yes/No. Wrap on a thread-pool thread so the WinUI
+            // dispatcher stays responsive (cancel button, progress redraws).
+            worker = await Task.Run(() => Process.Start(psi), cancellationToken).ConfigureAwait(false)
                 ?? throw new InvalidOperationException("Process.Start returned null.");
         }
         catch (System.ComponentModel.Win32Exception ex) when ((uint)ex.NativeErrorCode == 0x800704C7 || ex.NativeErrorCode == 1223)
