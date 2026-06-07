@@ -21,7 +21,7 @@
         <DataTemplate x:Key="RailNodeTemplate" x:DataType="viewmodels:PhaseItem">
             <StackPanel
                 Orientation="Vertical"
-                Spacing="4"
+                Spacing="3"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
                 ToolTipService.ToolTip="{x:Bind Name}">
