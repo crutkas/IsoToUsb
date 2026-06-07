@@ -41,11 +41,13 @@ public sealed class UsbBuildPipeline
 {
     /// <summary>
     /// Coarse byte gate that decides when an in-flight copy emits a fresh
-    /// LOG line (vs. a silent progress-bar heartbeat). Roughly matches the
-    /// cadence DISM uses for its split output (a line every 200-500 MiB),
-    /// so multi-GB file copies show motion in the log without spamming.
+    /// LOG line (vs. a silent progress-bar heartbeat). 50 MiB gives a log
+    /// line about every 5 seconds on a typical USB 3.0 stick (~10 MB/s)
+    /// so a 3.5 GiB SWM produces ~70 motion lines instead of the ~14 that
+    /// 256 MiB used to produce (which felt stuck for 25+ seconds between
+    /// entries even though the bottom bar kept moving).
     /// </summary>
-    private const long LogByteGate = 256L * 1024 * 1024;
+    private const long LogByteGate = 50L * 1024 * 1024;
 
     public FileCopier FileCopier { get; init; } = new();
     public DiskPartitioner Partitioner { get; init; } = new();
@@ -114,14 +116,15 @@ public sealed class UsbBuildPipeline
             var totalMb = p.BytesTotal / (1024 * 1024);
             // FileCopier fires ~5 Hz during each file's byte stream. To keep
             // the log readable we log the FIRST tick for a new file AND a
-            // milestone every LogByteGate (~256 MiB). Everything in between
-            // is a heartbeat that only advances the bar / status pill. Small
-            // files get exactly one log line; multi-GB SWMs get ~17 motion
-            // lines per 4 GB chunk so the user can see real progress in the
-            // log too (the previous behavior left install.swm stuck on one
-            // log line for 60+ seconds). Gate state is locked because
-            // Progress<T> dispatches to thread-pool threads without a sync
-            // context in the worker process.
+            // milestone every LogByteGate (50 MiB ≈ one line every ~5s on a
+            // 10 MB/s USB stick). Everything in between is a heartbeat that
+            // only advances the bar / status pill. Small files get exactly
+            // one log line; multi-GB SWMs get ~70 motion lines per 3.5 GB
+            // chunk so the log keeps pace with the bottom progress bar
+            // instead of feeling stuck for 25+ seconds between entries.
+            // Gate state is locked because Progress<T> dispatches to
+            // thread-pool threads without a sync context in the worker
+            // process.
             var isHeartbeat = copyGate.ShouldHeartbeat(p.CurrentRelativePath, p.BytesDone);
             progress?.Report(new PipelineProgress(
                 PipelineStage.CopyFiles,
@@ -215,11 +218,12 @@ public sealed class UsbBuildPipeline
                         var doneMb = p.BytesDone / (1024 * 1024);
                         var totalMb = p.BytesTotal / (1024 * 1024);
                         // Same gate as CopyFiles: one log line per chunk
-                        // boundary plus one every ~256 MiB so a 6.86 GB
-                        // install.swm shows ~25 motion lines instead of a
-                        // single stuck "1/6863 MB" line for 60+ seconds.
-                        // HeartbeatGate locks gate state across thread-pool
-                        // callbacks (no sync context in the worker process).
+                        // boundary plus one every 50 MiB so a 3.5 GiB SWM
+                        // shows ~70 motion lines (one every ~5s on a USB
+                        // 3.0 stick) instead of feeling stuck between
+                        // entries. HeartbeatGate locks gate state across
+                        // thread-pool callbacks (no sync context in the
+                        // worker process).
                         var isHeartbeat = swmGate.ShouldHeartbeat(p.CurrentRelativePath, p.BytesDone);
                         progress?.Report(new PipelineProgress(
                             PipelineStage.SplitInstallWim,
