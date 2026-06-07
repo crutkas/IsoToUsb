@@ -176,6 +176,17 @@ public class FileCopierTests
 
             Assert.IsTrue(reports.Count >= 1, "FileCopier should report at least once.");
 
+            // Pin the actual regression that motivated chunked progress:
+            // there must be at least one *intra-file* report (BytesDone > 0
+            // and < BytesTotal, FilesDone still 0) before the final 100%.
+            // The pre-fix behaviour emitted a single final report which
+            // would satisfy reports.Count >= 1 silently.
+            var intra = reports.FirstOrDefault(r =>
+                r.BytesDone > 0 && r.BytesDone < r.BytesTotal && r.FilesDone == 0);
+            Assert.IsNotNull(intra,
+                "FileCopier must emit intra-file byte progress before the file completes; " +
+                "otherwise the UI sits at 50% for 30-60s per 4 GB SWM.");
+
             // Final report must be exactly 100% for the file.
             var last = reports[^1];
             Assert.AreEqual(last.BytesTotal, last.BytesDone, "Final BytesDone must equal BytesTotal.");
