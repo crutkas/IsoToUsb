@@ -253,17 +253,18 @@ public sealed class BoolToFocalBorderBrushConverter : IValueConverter
 }
 
 /// <summary>
-/// Background brush picker for the focal card. Focal: standard card fill.
-/// Inactive: a slightly washed-out secondary fill so the dimming reads
-/// without making the card look broken.
+/// <summary>
+/// Background brush picker for the focal card. Both focal and inactive
+/// use the same card fill: the elevation difference (shadow +
+/// translation) carries the focal/dimmed signal, and a darker inactive
+/// fill would fight the page background and read as broken.
 /// </summary>
 public sealed class BoolToFocalBackgroundConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)
     {
         var resources = Application.Current?.Resources;
-        var key = (value is bool focal && focal) ? "CardBackgroundFillColorDefaultBrush" : "CardBackgroundFillColorSecondaryBrush";
-        if (resources is not null && resources.TryGetValue(key, out var v) && v is Brush b)
+        if (resources is not null && resources.TryGetValue("CardBackgroundFillColorDefaultBrush", out var v) && v is Brush b)
         {
             return b;
         }
