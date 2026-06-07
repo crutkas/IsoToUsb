@@ -19,18 +19,25 @@
                     <SolidColorBrush x:Key="LogWarnBrush"       Color="#946F00" />
                     <SolidColorBrush x:Key="LogErrorBrush"      Color="#C42B1C" />
                     <SolidColorBrush x:Key="LogTimestampBrush"  Color="#8A8A8A" />
+                    <!-- Page background. Matches design/elevation-a-v2.html's
+                         board-bg #ECECEC so cards (which use the lighter
+                         CardBackgroundFillColorDefaultBrush ~#FBFBFB) read as
+                         elevated above the page instead of being lost in it. -->
+                    <SolidColorBrush x:Key="AppPageBackgroundBrush" Color="#ECECEC" />
                 </ResourceDictionary>
                 <ResourceDictionary x:Key="Dark">
                     <SolidColorBrush x:Key="LogActionBrush"     Color="#6CCB5F" />
                     <SolidColorBrush x:Key="LogWarnBrush"       Color="#FCE100" />
                     <SolidColorBrush x:Key="LogErrorBrush"      Color="#FF99A4" />
                     <SolidColorBrush x:Key="LogTimestampBrush"  Color="#9A9A9A" />
+                    <SolidColorBrush x:Key="AppPageBackgroundBrush" Color="#161616" />
                 </ResourceDictionary>
                 <ResourceDictionary x:Key="HighContrast">
                     <SolidColorBrush x:Key="LogActionBrush"     Color="{ThemeResource SystemColorWindowTextColor}" />
                     <SolidColorBrush x:Key="LogWarnBrush"       Color="{ThemeResource SystemColorHighlightColor}" />
                     <SolidColorBrush x:Key="LogErrorBrush"      Color="{ThemeResource SystemColorHotlightColor}" />
                     <SolidColorBrush x:Key="LogTimestampBrush"  Color="{ThemeResource SystemColorGrayTextColor}" />
+                    <SolidColorBrush x:Key="AppPageBackgroundBrush" Color="{ThemeResource SystemColorWindowColor}" />
                 </ResourceDictionary>
             </ResourceDictionary.ThemeDictionaries>
 
