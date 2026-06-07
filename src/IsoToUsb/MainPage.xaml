@@ -35,15 +35,6 @@
                         CornerRadius="22"
                         Background="{StaticResource RailActiveGlowBrush}"
                         Visibility="{x:Bind IsRunning, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
-                    <!-- Opaque backplate so the vertical connector line drawn
-                         behind the rail nodes doesn't bleed through the (very
-                         translucent) accent-tinted fill above. Matches the
-                         rail subcard's own background fill. -->
-                    <Border
-                        Width="30"
-                        Height="30"
-                        CornerRadius="15"
-                        Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" />
                     <Border
                         Width="30"
                         Height="30"
@@ -284,10 +275,15 @@
 
                     <!-- Phase rail subcard. A rounded, bordered, subtle-bg
                          "Pipeline" panel containing 6 evenly-spaced rail nodes
-                         with a vertical 1px connector line drawn underneath
-                         them. Equivalent to the design board's .phase-rail
-                         (flex-direction:column; justify-content:space-between
-                         + ::before vertical line at left:35px). -->
+                         with 5 short connector lines drawn ONLY in the gaps
+                         between consecutive nodes. Earlier versions drew one
+                         tall line behind the nodes — but every WinUI brush
+                         that visually matched the rail card (Card*Secondary,
+                         etc.) is semi-transparent, so the line bled through
+                         the circles. Layout: 11 rows alternating Auto (node)
+                         and * (gap). Gaps grow as the rail stretches; nodes
+                         keep their natural ~62 px height (44 circle + label).
+                         Mirrors the design board's .phase-rail. -->
                     <Border
                         Grid.Column="0"
                         BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
@@ -295,89 +291,98 @@
                         CornerRadius="10"
                         Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
                         Padding="8,16">
-                        <!-- Rail layered grid. The 6 nodes go in a 6-row
-                             star-sized grid so they stretch to fill the rail
-                             card top-to-bottom (node centers at H/12, 3H/12,
-                             5H/12, 7H/12, 9H/12, 11H/12). The vertical
-                             connector line is laid out in a sibling 3-row
-                             grid with row defs (1*, 10*, 1*) and the line in
-                             the middle row — that span runs from y=H/12 to
-                             y=11H/12, i.e. exactly between the first and last
-                             node centers. The two sub-grids share the rail's
-                             dimensions so the line stays aligned regardless
-                             of available height. -->
-                        <Grid>
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="1*" />
-                                    <RowDefinition Height="10*" />
-                                    <RowDefinition Height="1*" />
-                                </Grid.RowDefinitions>
-                                <Rectangle
-                                    Grid.Row="1"
-                                    Width="1"
-                                    HorizontalAlignment="Center"
-                                    VerticalAlignment="Stretch"
-                                    Fill="{ThemeResource CardStrokeColorDefaultBrush}" />
-                            </Grid>
-                            <Grid RowSpacing="0">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="*" />
-                                    <RowDefinition Height="*" />
-                                    <RowDefinition Height="*" />
-                                    <RowDefinition Height="*" />
-                                    <RowDefinition Height="*" />
-                                    <RowDefinition Height="*" />
-                                </Grid.RowDefinitions>
-                                <ContentControl
-                                    Grid.Row="0"
-                                    HorizontalAlignment="Stretch"
-                                    HorizontalContentAlignment="Stretch"
-                                    VerticalAlignment="Stretch"
-                                    VerticalContentAlignment="Stretch"
-                                    Content="{x:Bind ViewModel.Phases[0], Mode=OneWay}"
-                                    ContentTemplate="{StaticResource RailNodeTemplate}" />
-                                <ContentControl
-                                    Grid.Row="1"
-                                    HorizontalAlignment="Stretch"
-                                    HorizontalContentAlignment="Stretch"
-                                    VerticalAlignment="Stretch"
-                                    VerticalContentAlignment="Stretch"
-                                    Content="{x:Bind ViewModel.Phases[1], Mode=OneWay}"
-                                    ContentTemplate="{StaticResource RailNodeTemplate}" />
-                                <ContentControl
-                                    Grid.Row="2"
-                                    HorizontalAlignment="Stretch"
-                                    HorizontalContentAlignment="Stretch"
-                                    VerticalAlignment="Stretch"
-                                    VerticalContentAlignment="Stretch"
-                                    Content="{x:Bind ViewModel.Phases[2], Mode=OneWay}"
-                                    ContentTemplate="{StaticResource RailNodeTemplate}" />
-                                <ContentControl
-                                    Grid.Row="3"
-                                    HorizontalAlignment="Stretch"
-                                    HorizontalContentAlignment="Stretch"
-                                    VerticalAlignment="Stretch"
-                                    VerticalContentAlignment="Stretch"
-                                    Content="{x:Bind ViewModel.Phases[3], Mode=OneWay}"
-                                    ContentTemplate="{StaticResource RailNodeTemplate}" />
-                                <ContentControl
-                                    Grid.Row="4"
-                                    HorizontalAlignment="Stretch"
-                                    HorizontalContentAlignment="Stretch"
-                                    VerticalAlignment="Stretch"
-                                    VerticalContentAlignment="Stretch"
-                                    Content="{x:Bind ViewModel.Phases[4], Mode=OneWay}"
-                                    ContentTemplate="{StaticResource RailNodeTemplate}" />
-                                <ContentControl
-                                    Grid.Row="5"
-                                    HorizontalAlignment="Stretch"
-                                    HorizontalContentAlignment="Stretch"
-                                    VerticalAlignment="Stretch"
-                                    VerticalContentAlignment="Stretch"
-                                    Content="{x:Bind ViewModel.Phases[5], Mode=OneWay}"
-                                    ContentTemplate="{StaticResource RailNodeTemplate}" />
-                            </Grid>
+                        <Grid RowSpacing="0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <ContentControl
+                                Grid.Row="0"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Stretch"
+                                VerticalAlignment="Stretch"
+                                VerticalContentAlignment="Stretch"
+                                Content="{x:Bind ViewModel.Phases[0], Mode=OneWay}"
+                                ContentTemplate="{StaticResource RailNodeTemplate}" />
+                            <Rectangle
+                                Grid.Row="1"
+                                Width="1"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Stretch"
+                                Fill="{ThemeResource CardStrokeColorDefaultBrush}" />
+                            <ContentControl
+                                Grid.Row="2"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Stretch"
+                                VerticalAlignment="Stretch"
+                                VerticalContentAlignment="Stretch"
+                                Content="{x:Bind ViewModel.Phases[1], Mode=OneWay}"
+                                ContentTemplate="{StaticResource RailNodeTemplate}" />
+                            <Rectangle
+                                Grid.Row="3"
+                                Width="1"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Stretch"
+                                Fill="{ThemeResource CardStrokeColorDefaultBrush}" />
+                            <ContentControl
+                                Grid.Row="4"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Stretch"
+                                VerticalAlignment="Stretch"
+                                VerticalContentAlignment="Stretch"
+                                Content="{x:Bind ViewModel.Phases[2], Mode=OneWay}"
+                                ContentTemplate="{StaticResource RailNodeTemplate}" />
+                            <Rectangle
+                                Grid.Row="5"
+                                Width="1"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Stretch"
+                                Fill="{ThemeResource CardStrokeColorDefaultBrush}" />
+                            <ContentControl
+                                Grid.Row="6"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Stretch"
+                                VerticalAlignment="Stretch"
+                                VerticalContentAlignment="Stretch"
+                                Content="{x:Bind ViewModel.Phases[3], Mode=OneWay}"
+                                ContentTemplate="{StaticResource RailNodeTemplate}" />
+                            <Rectangle
+                                Grid.Row="7"
+                                Width="1"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Stretch"
+                                Fill="{ThemeResource CardStrokeColorDefaultBrush}" />
+                            <ContentControl
+                                Grid.Row="8"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Stretch"
+                                VerticalAlignment="Stretch"
+                                VerticalContentAlignment="Stretch"
+                                Content="{x:Bind ViewModel.Phases[4], Mode=OneWay}"
+                                ContentTemplate="{StaticResource RailNodeTemplate}" />
+                            <Rectangle
+                                Grid.Row="9"
+                                Width="1"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Stretch"
+                                Fill="{ThemeResource CardStrokeColorDefaultBrush}" />
+                            <ContentControl
+                                Grid.Row="10"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Stretch"
+                                VerticalAlignment="Stretch"
+                                VerticalContentAlignment="Stretch"
+                                Content="{x:Bind ViewModel.Phases[5], Mode=OneWay}"
+                                ContentTemplate="{StaticResource RailNodeTemplate}" />
                         </Grid>
                     </Border>
 
