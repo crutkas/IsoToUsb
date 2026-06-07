@@ -32,12 +32,25 @@ public enum StatusKind
 /// </summary>
 public partial class PhaseItem : ObservableObject
 {
-    public PhaseItem(string name)
+    public PhaseItem(string name, string shortName, string railGlyph)
     {
         Name = name;
+        ShortName = shortName;
+        RailGlyph = railGlyph;
     }
 
+    /// <summary>Long human-readable phase name (e.g. "Wipe and partition USB").</summary>
     public string Name { get; }
+
+    /// <summary>One-word label shown under the rail node (e.g. "Wipe").</summary>
+    public string ShortName { get; }
+
+    /// <summary>
+    /// Segoe Fluent glyph that represents the phase *identity* on the rail
+    /// (e.g. delete icon for Wipe). Stays constant regardless of status —
+    /// status is communicated via the node colours, not the icon.
+    /// </summary>
+    public string RailGlyph { get; }
 
     [ObservableProperty]
     public partial PhaseStatus Status { get; set; } = PhaseStatus.Pending;

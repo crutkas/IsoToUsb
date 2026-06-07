@@ -1,0 +1,1299 @@
+<!doctype html>
+<html lang="en" data-board-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1600">
+<title>IsoToUsb — Elevation Focus Shift Board</title>
+<style>
+
+  /* ============================================================
+     BOARD CHROME
+     ============================================================ */
+  :root {
+    --board-bg: #ECECEC;
+    --board-card: #FFFFFF;
+    --board-text: #1B1B1B;
+    --board-sub: #5D5D5D;
+    --board-border: rgba(0,0,0,0.08);
+    --board-accent: #0067C0;
+  }
+  html[data-board-theme="dark"] {
+    --board-bg: #161616;
+    --board-card: #1F1F1F;
+    --board-text: #F5F5F5;
+    --board-sub: #B5B5B5;
+    --board-border: rgba(255,255,255,0.08);
+    --board-accent: #4CC2FF;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--board-bg);
+    color: var(--board-text);
+    font-family: "Segoe UI Variable Display", "Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--board-accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .topbar {
+    position: sticky; top: 0; z-index: 50;
+    display: flex; align-items: center; gap: 24px;
+    padding: 14px 28px;
+    background: color-mix(in srgb, var(--board-card) 88%, transparent);
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    border-bottom: 1px solid var(--board-border);
+  }
+  .topbar .brand { font-weight: 600; font-size: 15px; letter-spacing: 0.1px; display: flex; align-items: center; gap: 10px; }
+  .topbar .brand .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--board-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--board-accent) 22%, transparent); }
+  .topbar nav { display: flex; gap: 4px; flex-wrap: wrap; }
+  .topbar nav a { padding: 6px 12px; border-radius: 6px; color: var(--board-text); font-size: 13px; font-weight: 500; }
+  .topbar nav a:hover { background: var(--board-border); text-decoration: none; }
+  .topbar .spacer { flex: 1; }
+  .topbar .meta { color: var(--board-sub); font-size: 12px; }
+  .theme-toggle {
+    border: 1px solid var(--board-border); background: transparent; color: var(--board-text);
+    border-radius: 6px; padding: 6px 12px; font: inherit; font-size: 12px; font-weight: 500; cursor: pointer;
+  }
+  .theme-toggle:hover { background: var(--board-border); }
+
+  .page-intro { max-width: 1160px; margin: 32px auto 8px; padding: 0 28px; }
+  .page-intro h1 { font-size: 30px; font-weight: 600; margin: 0 0 6px; letter-spacing: -0.2px; }
+  .page-intro p { color: var(--board-sub); margin: 0 0 6px; max-width: 860px; }
+  .page-intro .legend { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 14px; font-size: 12px; color: var(--board-sub); }
+  .page-intro .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .page-intro .legend .sw { width: 10px; height: 10px; border-radius: 3px; border: 1px solid var(--board-border); }
+
+  .concept { margin: 56px auto 0; max-width: 1800px; padding: 0 28px; }
+  .concept-head {
+    display: grid; grid-template-columns: 1.35fr 1fr 1fr; gap: 28px;
+    background: var(--board-card); border: 1px solid var(--board-border); border-radius: 12px;
+    padding: 22px 26px; margin-bottom: 22px;
+  }
+  .concept-head h2 { margin: 0 0 6px; font-size: 22px; font-weight: 600; }
+  .concept-head .tag { display: inline-block; background: color-mix(in srgb, var(--board-accent) 14%, transparent); color: var(--board-accent); font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 10px; letter-spacing: 0.3px; text-transform: uppercase; margin-bottom: 8px; }
+  .concept-head .pitch { color: var(--board-text); font-size: 14px; margin: 0; }
+  .concept-head h3 { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: var(--board-sub); margin: 0 0 8px; }
+  .concept-head ul { margin: 0; padding-left: 18px; color: var(--board-text); font-size: 13px; }
+  .concept-head li { margin-bottom: 5px; }
+
+  .row { display: flex; gap: 28px; overflow-x: auto; padding: 8px 4px 28px; scroll-snap-type: x proximity; }
+  .row-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: var(--board-sub); padding: 12px 4px 4px; display: flex; align-items: center; gap: 10px; }
+  .row-label .swatch { width: 12px; height: 12px; border-radius: 3px; border: 1px solid var(--board-border); }
+  .frame-wrap { scroll-snap-align: start; flex-shrink: 0; }
+  .frame-label { font-size: 12px; color: var(--board-sub); padding: 0 4px 8px; display: flex; align-items: center; gap: 8px; }
+  .frame-label .pill { background: var(--board-border); color: var(--board-text); padding: 2px 8px; border-radius: 10px; font-weight: 600; font-size: 11px; }
+
+  /* ============================================================
+     FRAME + WINDOWS CHROME
+     ============================================================ */
+  .frame {
+    width: 1240px; height: 720px; border-radius: 10px; overflow: hidden; position: relative;
+    box-shadow: 0 14px 36px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.06);
+    font-family: "Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+    font-size: 14px; color: var(--fg);
+    --bg:        #F3F3F3;
+    --card:      #FFFFFF;
+    --subtle:    #FAFAFA;
+    --hover:     #EFEFEF;
+    --border:    rgba(0,0,0,0.0578);
+    --border-strong: rgba(0,0,0,0.1);
+    --fg:        #1B1B1B;
+    --fg2:       #5D5D5D;
+    --fg3:       #8A8A8A;
+    --accent:    #0067C0;
+    --accent-hover: #0258A6;
+    --accent-fg: #FFFFFF;
+    --good:      #107C10;
+    --warn:      #C29200;
+    --bad:       #C42B1C;
+    --chrome:    #F0F0F0;
+    --chrome-fg: #1B1B1B;
+    --track:     #E5E5E5;
+    --mono:      "Cascadia Mono", "Consolas", "JetBrains Mono", "SF Mono", ui-monospace, monospace;
+    --shadow-low: 0 1px 2px rgba(0,0,0,0.05), 0 0 0 1px rgba(0,0,0,0.018);
+    --shadow-rest: 0 6px 18px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-focus: 0 22px 46px rgba(0,0,0,0.18), 0 6px 16px rgba(0,0,0,0.08);
+    --state-accent: var(--accent);
+  }
+  .frame.dark {
+    box-shadow: 0 14px 36px rgba(0,0,0,0.45), 0 2px 6px rgba(0,0,0,0.3);
+    --bg:        #202020;
+    --card:      #2B2B2B;
+    --subtle:    #272727;
+    --hover:     #323232;
+    --border:    rgba(255,255,255,0.0837);
+    --border-strong: rgba(255,255,255,0.14);
+    --fg:        #FFFFFF;
+    --fg2:       #C8C8C8;
+    --fg3:       #909090;
+    --accent:    #4CC2FF;
+    --accent-hover: #62CBFF;
+    --accent-fg: #000000;
+    --good:      #6CCB5F;
+    --warn:      #FCE100;
+    --bad:       #FF99A4;
+    --chrome:    #1F1F1F;
+    --chrome-fg: #FFFFFF;
+    --track:     #3D3D3D;
+    --shadow-low: 0 1px 2px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.02);
+    --shadow-rest: 0 8px 20px rgba(0,0,0,0.34), 0 1px 2px rgba(0,0,0,0.34);
+    --shadow-focus: 0 26px 52px rgba(0,0,0,0.62), 0 8px 18px rgba(0,0,0,0.42);
+  }
+  .frame.state-done { --state-accent: var(--good); }
+
+  .winchrome { height: 32px; background: var(--chrome); color: var(--chrome-fg); display: flex; align-items: center; padding: 0 0 0 12px; font-size: 12px; border-bottom: 1px solid var(--border); position: relative; z-index: 20; }
+  .winchrome .title { display: flex; align-items: center; gap: 8px; font-weight: 500; }
+  .winchrome .title .ic { width: 14px; height: 14px; color: var(--accent); }
+  .winchrome .spacer { flex: 1; }
+  .winchrome .caps { display: flex; height: 100%; }
+  .winchrome .cap { width: 46px; height: 100%; display: inline-flex; align-items: center; justify-content: center; color: var(--fg2); }
+  .winchrome .cap svg { width: 10px; height: 10px; }
+  .winchrome .cap.close:hover { background: #C42B1C; color: #fff; }
+
+  .content { height: calc(100% - 32px); display: grid; grid-template-rows: minmax(0, 1fr) 72px; background: var(--bg); position: relative; overflow: hidden; }
+  .content::before { content: ''; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(circle at 15% 10%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 30%), radial-gradient(circle at 88% 12%, color-mix(in srgb, var(--state-accent) 7%, transparent), transparent 28%); opacity: .55; }
+  .workspace { min-height: 0; display: grid; grid-template-columns: 280px minmax(0,1fr) 300px; gap: 14px; padding: 16px; position: relative; z-index: 1; overflow: hidden; }
+
+  svg { flex-shrink: 0; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 32px; padding: 7px 14px; border-radius: 6px; border: 1px solid var(--border-strong); background: var(--card); color: var(--fg); font: inherit; font-size: 13px; font-weight: 600; white-space: nowrap; }
+  .btn.primary { background: var(--accent); color: var(--accent-fg); border-color: transparent; box-shadow: inset 0 1px 0 rgba(255,255,255,0.12); }
+  .btn[disabled], .btn.disabled { opacity: 0.52; }
+  .btn .ic { width: 14px; height: 14px; }
+  .mini-btn { margin-top: 8px; border: 1px solid var(--border-strong); background: var(--card); color: var(--fg); border-radius: 6px; padding: 5px 10px; font: inherit; font-size: 12px; font-weight: 600; }
+  .mini-btn[disabled] { opacity: .55; }
+  .label-sm { font-size: 11px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase; color: var(--fg2); }
+  .combo, .input { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border: 1px solid var(--border-strong); border-radius: 6px; background: var(--card); min-height: 36px; }
+  .combo .left { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .combo .label, .input { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .combo .ic { width: 17px; height: 17px; color: var(--fg2); }
+  .combo .chev { width: 12px; height: 12px; color: var(--fg2); }
+  .combo.locked, .input.locked { opacity: .72; }
+  .progress { height: 6px; background: var(--track); border-radius: 999px; overflow: hidden; position: relative; }
+  .progress > i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: inherit; transition: width 180ms ease; }
+  .progress.success > i { background: var(--good); }
+  .infobar { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: 7px; border: 1px solid var(--border-strong); background: var(--subtle); }
+  .infobar.info { border-color: color-mix(in srgb, var(--accent) 35%, var(--border-strong)); background: color-mix(in srgb, var(--accent) 9%, var(--card)); }
+  .infobar.success { border-color: color-mix(in srgb, var(--good) 35%, var(--border-strong)); background: color-mix(in srgb, var(--good) 10%, var(--card)); }
+  .infobar .ic { width: 18px; height: 18px; margin-top: 1px; }
+  .infobar.info .ic { color: var(--accent); }
+  .infobar.success .ic { color: var(--good); }
+  .infobar .body { font-size: 12px; color: var(--fg); }
+  .infobar .det { color: var(--fg2); margin-top: 2px; }
+
+  .side-card { position: relative; min-width: 0; min-height: 0; overflow: hidden; border-radius: 12px; background: var(--card); border: 1px solid var(--border); box-shadow: var(--shadow-rest); transform: translate(var(--x, 0), var(--y, 0)) scale(var(--scale, 1)); transform-origin: center; opacity: var(--pane-opacity, 1); filter: var(--pane-filter, none); transition: transform 180ms ease, box-shadow 180ms ease, opacity 180ms ease, filter 180ms ease, border-color 180ms ease, background 180ms ease; }
+  .side-card .card-inner { height: 100%; padding: 18px; display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+  .side-card.focus { z-index: 5; }
+  .side-card.inactive { z-index: 2; }
+  .drop-card { border: 1.5px dashed color-mix(in srgb, var(--state-accent) 48%, var(--border-strong)); border-radius: 9px; padding: 14px; text-align: center; background: color-mix(in srgb, var(--card) 88%, var(--state-accent) 4%); }
+  .drop-card.locked { border-style: solid; border-color: var(--border-strong); background: var(--card); }
+  .drop-card .big { width: 28px; height: 28px; color: var(--state-accent); }
+  .drop-title { font-weight: 600; margin-top: 6px; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .drop-sub { color: var(--fg2); font-size: 11px; margin-top: 1px; }
+  .defaults { display: grid; grid-template-columns: 1fr auto; gap: 5px 10px; padding: 10px 0 0; }
+  .defaults span:nth-child(odd) { color: var(--fg2); font-size: 12px; }
+  .defaults span:nth-child(even) { color: var(--fg); font-size: 12px; font-weight: 600; }
+
+  .log-panel { min-width: 0; min-height: 0; overflow: hidden; display: flex; flex-direction: column; border-radius: 10px; border: 1px solid var(--border); background: var(--subtle); box-shadow: inset 0 1px 0 color-mix(in srgb, #000 5%, transparent); position: relative; z-index: 1; }
+  .log-head { height: 38px; padding: 0 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); background: color-mix(in srgb, var(--card) 70%, var(--subtle)); font-size: 12px; }
+  .log-head .ic { width: 14px; height: 14px; color: var(--state-accent); }
+  .log-head .muted { color: var(--fg2); }
+  .log-body { flex: 1; padding: 14px 16px; font-family: var(--mono); font-size: 12px; line-height: 1.66; color: var(--fg2); overflow: hidden; background: color-mix(in srgb, var(--subtle) 86%, #000 4%); }
+  .frame.dark .log-body { background: #0F0F0F; }
+  .ln { white-space: pre; }
+  .ts { color: var(--fg3); }
+  .ok { color: var(--good); }
+  .wn { color: var(--warn); }
+  .ac { color: var(--accent); }
+  .fg { color: var(--fg); }
+
+  .phase-list { display: flex; flex-direction: column; gap: 2px; margin-top: 2px; }
+  .phase-row { display: grid; grid-template-columns: 20px 1fr; gap: 10px; min-height: 51px; padding: 7px 0; align-items: start; }
+  .phase-row svg { width: 18px; height: 18px; margin-top: 2px; color: var(--fg3); }
+  .phase-row.done svg, .phase-row.done .title { color: var(--good); }
+  .phase-row.active svg, .phase-row.active .title { color: var(--accent); }
+  .phase-row .title { font-size: 13px; font-weight: 600; color: var(--fg); }
+  .phase-row.pending .title { color: var(--fg); }
+  .phase-row .detail { font-size: 11px; color: var(--fg3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .phase-row.active .detail { color: var(--fg2); }
+  .phase-summary { margin-top: auto; border: 1px solid var(--border); background: var(--subtle); border-radius: 8px; padding: 12px; }
+  .phase-summary .metric { display: flex; justify-content: space-between; font-size: 12px; margin-top: 4px; }
+  .phase-summary strong { color: var(--fg); }
+
+  .actionbar { position: relative; z-index: 10; border-top: 1px solid var(--border); background: var(--card); padding: 8px 18px; display: grid; grid-template-rows: 1fr auto; }
+  .action-row { display: grid; grid-template-columns: auto minmax(160px,1fr) auto; align-items: center; column-gap: 12px; }
+  .status-pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--border-strong); font-size: 12px; font-weight: 600; }
+  .status-pill svg { width: 12px; height: 12px; }
+  .status-pill.ready { color: var(--fg2); background: var(--subtle); }
+  .status-pill.busy { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, var(--border-strong)); background: color-mix(in srgb, var(--accent) 10%, var(--card)); }
+  .status-pill.done { color: var(--good); border-color: color-mix(in srgb, var(--good) 42%, var(--border-strong)); background: color-mix(in srgb, var(--good) 11%, var(--card)); }
+  .action-row .progress { margin: 0 14px; }
+  .actions { display: flex; gap: 8px; align-items: center; }
+  .caption-row { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; gap: 10px; align-items: center; margin-top: 4px; color: var(--fg2); font-size: 11px; }
+  .caption-row .shield { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .caption-row svg { width: 11px; height: 11px; color: var(--state-accent); }
+  .caption-row .dotsep { color: var(--fg3); }
+  .caption-row .op { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .caption-row .version { color: var(--fg3); white-space: nowrap; }
+
+  .frame.twin .side-card { box-shadow: var(--shadow-rest); }
+  .frame.twin .side-card.focus { --y: -5px; box-shadow: var(--shadow-focus); border-color: color-mix(in srgb, var(--state-accent) 34%, var(--border)); background: color-mix(in srgb, var(--card) 94%, var(--state-accent) 3%); }
+  .frame.twin .side-card.inactive { box-shadow: var(--shadow-low); background: color-mix(in srgb, var(--card) 80%, var(--bg)); }
+  .frame.twin:hover .side-card.focus { --y: -7px; }
+
+  .frame.spotlight .side-card { box-shadow: var(--shadow-rest); }
+  .frame.spotlight .side-card.focus { box-shadow: var(--shadow-rest), 0 0 0 1px color-mix(in srgb, var(--state-accent) 44%, transparent), 0 0 0 8px color-mix(in srgb, var(--state-accent) 9%, transparent); }
+  .frame.spotlight .side-card.inactive { --pane-opacity: .68; --pane-filter: saturate(.72); box-shadow: var(--shadow-low); }
+  .frame.spotlight .side-card.inactive::after { content: ''; position: absolute; inset: 0; background: color-mix(in srgb, var(--bg) 44%, transparent); pointer-events: none; }
+  .frame.spotlight:hover .side-card.focus { box-shadow: var(--shadow-rest), 0 0 0 1px color-mix(in srgb, var(--state-accent) 58%, transparent), 0 0 0 13px color-mix(in srgb, var(--state-accent) 12%, transparent); }
+
+  .frame.stack .workspace { gap: 8px; padding: 18px 14px; overflow: visible; }
+  .frame.stack .side-card { --scale: .985; box-shadow: var(--shadow-low); z-index: 0; }
+  .frame.stack .side-card.focus { --scale: 1; --y: -4px; box-shadow: var(--shadow-focus); border-color: color-mix(in srgb, var(--state-accent) 26%, var(--border)); z-index: 8; }
+  .frame.stack .left-card.focus { margin-right: -22px; --x: 7px; }
+  .frame.stack .right-card.focus { margin-left: -22px; --x: -7px; }
+  .frame.stack .side-card.inactive { --pane-opacity: .88; }
+  .frame.stack .log-panel { z-index: 1; }
+  .frame.stack:hover .left-card.focus { --x: 10px; }
+  .frame.stack:hover .right-card.focus { --x: -10px; }
+
+  .frame.edge .side-card { box-shadow: var(--shadow-rest); }
+  .frame.edge .side-card.focus { border-color: color-mix(in srgb, var(--state-accent) 42%, var(--border)); box-shadow: var(--shadow-rest), 0 0 0 1px color-mix(in srgb, var(--state-accent) 24%, transparent), 0 10px 30px color-mix(in srgb, var(--state-accent) 12%, transparent); }
+  .frame.edge .side-card.inactive { box-shadow: var(--shadow-low); }
+  .frame.edge .side-card.focus::before { content: ''; position: absolute; top: 0; bottom: 0; width: 4px; background: linear-gradient(180deg, var(--state-accent), color-mix(in srgb, var(--state-accent) 60%, transparent)); box-shadow: 0 0 18px color-mix(in srgb, var(--state-accent) 42%, transparent); z-index: 2; }
+  .frame.edge .left-card.focus::before { left: 0; }
+  .frame.edge .right-card.focus::before { right: 0; }
+  .frame.edge:hover .side-card.focus { box-shadow: var(--shadow-rest), 0 0 0 1px color-mix(in srgb, var(--state-accent) 34%, transparent), 0 12px 36px color-mix(in srgb, var(--state-accent) 18%, transparent); }
+
+  .reco { max-width: 1160px; margin: 60px auto 80px; padding: 0 28px; }
+  .reco .card { background: var(--board-card); border: 1px solid var(--board-border); border-radius: 12px; padding: 22px 26px; }
+  .reco h2 { font-size: 20px; margin: 0 0 12px; }
+  .reco p { color: var(--board-text); margin: 0 0 10px; }
+  .reco strong { color: var(--board-accent); }
+
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-app" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 21h8M12 18v3"/><path d="M7 8h10M7 12h6"/></symbol>
+    <symbol id="i-iso" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.4"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></symbol>
+    <symbol id="i-usb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v14"/><path d="M9 7l3-4 3 4"/><path d="M8 12h8v6a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-6z"/><circle cx="10" cy="15.5" r="0.8" fill="currentColor"/><circle cx="14" cy="15.5" r="0.8" fill="currentColor"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+    <symbol id="i-check-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l3 3 5-6"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><circle cx="12" cy="7.5" r="0.9" fill="currentColor"/></symbol>
+    <symbol id="i-chev-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v4h-4"/></symbol>
+    <symbol id="i-term" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3M13 15h4"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></symbol>
+    <symbol id="i-scissors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.5 7.5l12 9M8.5 16.5l12-9"/></symbol>
+    <symbol id="i-min" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1"><path d="M2 6h8"/></symbol>
+    <symbol id="i-max" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1"><rect x="2" y="2" width="8" height="8"/></symbol>
+    <symbol id="i-cls" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1"><path d="M2 2l8 8M10 2l-8 8"/></symbol>
+    <symbol id="i-validate" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7l2 2 4-4"/><path d="M5 13l2 2 4-4"/><path d="M5 19l2 2 4-4"/><path d="M14 8h6M14 14h6M14 20h6"/></symbol>
+    <symbol id="i-mount" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="6" rx="1"/><path d="M7 12v6M17 12v6M3 18h18"/></symbol>
+    <symbol id="i-wipe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16l-1.4 12a2 2 0 0 1-2 1.8H7.4a2 2 0 0 1-2-1.8L4 7z"/><path d="M9 4h6v3H9z"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></symbol>
+    <symbol id="i-verify" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></symbol>
+    <symbol id="i-spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3a9 9 0 1 1-6.4 2.6" /></symbol>
+  </defs>
+</svg>
+
+<header class="topbar">
+  <div class="brand"><span class="dot"></span> IsoToUsb · Elevation Board</div>
+  <nav>
+    <a href="#concept-a">A · Twin cards</a>
+    <a href="#concept-b">B · Spotlight</a>
+    <a href="#concept-c">C · Z-order</a>
+    <a href="#concept-d">D · Accent edge</a>
+    <a href="#reco">Recommendation</a>
+  </nav>
+  <div class="spacer"></div>
+  <div class="meta">4 concepts · 24 frames · 1240×720</div>
+  <button class="theme-toggle" onclick="(function(h){h.dataset.boardTheme = h.dataset.boardTheme==='dark'?'light':'dark';})(document.documentElement)">Toggle board theme</button>
+</header>
+
+<section class="page-intro">
+  <h1>IsoToUsb — elevation focus shift</h1>
+  <p>The left setup pane and right pipeline pane are treated as floating cards instead of flat columns. During setup, the left card becomes the higher/focal surface; once building starts, focus shifts to the pipeline card so the user's eye follows the work.</p>
+  <p>All variants keep the current Workshop structure intact: 280 px setup, flexible live log, 300 px pipeline, and the 72 px bottom action bar with status pill, progress, Refresh/Cancel/Start and caption row. The states can be driven by existing VM state such as <code>IsBusy</code>, <code>Status</code>, <code>Result</code> and <code>IsResultVisible</code> — no new binding concepts are required.</p>
+  <div class="legend">
+    <span><span class="sw" style="background:#0067C0"></span>Accent · Light</span>
+    <span><span class="sw" style="background:#4CC2FF"></span>Accent · Dark</span>
+    <span><span class="sw" style="background:#107C10"></span>Success</span>
+    <span>Hover frames to exaggerate the active-card elevation/glow.</span>
+  </div>
+</section>
+
+
+<section id="concept-a" class="concept">
+  <div class="concept-head">
+    <div><span class="tag">Concept A</span><h2>Twin floating cards</h2><p class="pitch">Both side panes become literal floating cards. Setup lifts the input card with a deeper shadow and slight upward offset; Building and Done shift that same lift to the pipeline card.</p></div>
+    <div><h3>Transition cues</h3><ul><li>180 ms shadow ramp; active card translates up 5 px.</li><li>Inactive card keeps content fully readable but drops to a low fake shadow.</li><li>Done reuses the right-side focus with success green as the state accent.</li></ul></div>
+    <div><h3>Pros / cons</h3><ul><li>Best literal answer to &#39;which side is higher&#39;; maps cleanly to ThemeShadow or layered Borders.</li><li>Low usability risk because nothing is dimmed or scaled.</li><li>Needs careful dark-theme shadow tuning so the inactive card does not disappear.</li></ul></div>
+  </div>
+  <div class="row-label"><span class="swatch" style="background:#FFFFFF"></span> Light theme · Setup / Building / Done</div>
+  <div class="row">
+    <div class="frame-wrap"><div class="frame-label"><span class="pill">Setup</span> Idle · left card raised</div>
+      <div class="frame light twin state-setup">
+        <div class="winchrome"><div class="title"><svg class="ic"><use href="#i-app"/></svg> IsoToUsb · Workshop</div><div class="spacer"></div><div class="caps"><div class="cap"><svg><use href="#i-min"/></svg></div><div class="cap"><svg><use href="#i-max"/></svg></div><div class="cap close"><svg><use href="#i-cls"/></svg></div></div></div>
+        <div class="content">
+          <div class="workspace">
+            <section class="side-card left-card focus">
+      <div class="card-inner">
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Source ISO</div>
+          <div class="drop-card">
+            <svg class="big"><use href="#i-iso"/></svg>
+            <div class="drop-title">Win11_24H2_English_x64.iso</div>
+            <div class="drop-sub">5.42 GB · drop another to replace</div>
+            <button class="mini-btn">Browse...</button>
+          </div>
+        </div>
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Target USB</div>
+          <div class="combo"><div class="left"><svg class="ic"><use href="#i-usb"/></svg><span class="label">Disk 3 (G:) - SanDisk Ultra (29.8 GB)</span></div><svg class="chev"><use href="#i-chev-down"/></svg></div>
+        </div>
+        <div>
+          <div class="label-sm">Defaults</div>
+          <div class="defaults">
+            <span>Boot mode</span><span>UEFI</span>
+            <span>Partition scheme</span><span>GPT</span>
+            <span>File system</span><span>FAT32</span>
+            <span>Auto-split install.wim</span><span>On</span>
+          </div>
+        </div>
+        <div style="margin-top:auto;" class="infobar info"><svg class="ic"><use href="#i-info"/></svg><div class="body">Strong defaults: UEFI · GPT · FAT32. Target USB will be wiped.</div></div>
+      </div></section>
+            <div class="log-panel"><div class="log-head"><svg class="ic"><use href="#i-term"/></svg><span style="font-weight:600;">Log</span><span class="muted">· awaiting start</span><span style="flex:1;"></span><span class="label-sm">Wrap</span><span class="label-sm">Auto-scroll ✓</span><span class="label-sm">Save…</span></div><div class="log-body"><div class="ln"><span class="ts">[--:--:--]</span> <span class="fg">ready.</span> waiting for Start.</div><div class="ln"><span class="ts">[--:--:--]</span> source: Win11_24H2_English_x64.iso (5.42 GB)</div><div class="ln"><span class="ts">[--:--:--]</span> target: \\.\PhysicalDrive3 (SanDisk Ultra, 29.8 GB)</div><div class="ln"><span class="ts">[--:--:--]</span> plan: validate → mount → wipe → copy → split → verify</div><div class="ln"><span class="ts">[--:--:--]</span> defaults: UEFI · GPT · FAT32 · auto-split enabled</div></div></div>
+            <section class="side-card right-card inactive"><div class="card-inner"><div class="label-sm">Pipeline · 6 phases</div><div class="phase-list"><div class="phase-row pending"><svg><use href="#i-validate"/></svg><div><div class="title">Validate</div><div class="detail">checksums · disk & size sanity</div></div></div><div class="phase-row pending"><svg><use href="#i-mount"/></svg><div><div class="title">Mount ISO</div><div class="detail">attach as virtual disk</div></div></div><div class="phase-row pending"><svg><use href="#i-wipe"/></svg><div><div class="title">Wipe & partition</div><div class="detail">GPT · FAT32 · WIN_USB</div></div></div><div class="phase-row pending"><svg><use href="#i-copy"/></svg><div><div class="title">Copy files</div><div class="detail">~5.42 GB · longest phase</div></div></div><div class="phase-row pending"><svg><use href="#i-scissors"/></svg><div><div class="title">Split install.wim</div><div class="detail">2 parts · under 4 GB each</div></div></div><div class="phase-row pending"><svg><use href="#i-verify"/></svg><div><div class="title">Verify sample</div><div class="detail">20 random files · SHA</div></div></div></div><div class="phase-summary"><div class="label-sm">Estimated</div><div class="metric"><span>Total</span><strong>~7 min</strong></div><div class="metric"><span>Data to write</span><strong>5.42 GB</strong></div></div></div></section>
+          </div>
+          <div class="actionbar"><div class="action-row"><div class="status-pill ready"><svg><use href="#i-term"/></svg><span>Ready</span></div><div class="progress"><i style="width:0%"></i></div><div class="actions"><button class="btn"><svg class="ic"><use href="#i-refresh"/></svg>Refresh</button><button class="btn" disabled><svg class="ic"><use href="#i-x"/></svg>Cancel</button><button class="btn primary"><svg class="ic"><use href="#i-check"/></svg>Start build</button></div></div><div class="caption-row"><span class="shield"><svg><use href="#i-shield"/></svg> Elevated worker</span><span class="dotsep">·</span><span class="op">Choose an ISO and target USB, then start the build.</span><span class="version">IsoToUsb · MIT · runs as administrator</span></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-wrap"><div class="frame-label"><span class="pill">Building</span> Running · right card raised</div>
+      <div class="frame light twin state-building">
+        <div class="winchrome"><div class="title"><svg class="ic"><use href="#i-app"/></svg> IsoToUsb · Workshop</div><div class="spacer"></div><div class="caps"><div class="cap"><svg><use href="#i-min"/></svg></div><div class="cap"><svg><use href="#i-max"/></svg></div><div class="cap close"><svg><use href="#i-cls"/></svg></div></div></div>
+        <div class="content">
+          <div class="workspace">
+            <section class="side-card left-card inactive">
+      <div class="card-inner">
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Source ISO</div>
+          <div class="drop-card locked">
+            <svg class="big"><use href="#i-iso"/></svg>
+            <div class="drop-title">Win11_24H2_English_x64.iso</div>
+            <div class="drop-sub">5.42 GB · mounted read-only as G:\</div>
+            <button class="mini-btn" disabled>Browse...</button>
+          </div>
+        </div>
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Target USB</div>
+          <div class="combo locked"><div class="left"><svg class="ic"><use href="#i-usb"/></svg><span class="label">Disk 3 (G:) - SanDisk Ultra (29.8 GB)</span></div></div>
+        </div>
+        <div>
+          <div class="label-sm">Defaults</div>
+          <div class="defaults">
+            <span>Boot mode</span><span>UEFI</span>
+            <span>Partition scheme</span><span>GPT</span>
+            <span>File system</span><span>FAT32</span>
+            <span>Auto-split install.wim</span><span>On</span>
+          </div>
+        </div>
+        <div style="margin-top:auto;" class="infobar info"><svg class="ic"><use href="#i-info"/></svg><div class="body">Inputs are locked while files are being copied. Cancel to make changes.</div></div>
+      </div></section>
+            <div class="log-panel"><div class="log-head"><svg class="ic"><use href="#i-spinner"/></svg><span style="font-weight:600;">Log</span><span class="muted">· streaming · phase copy</span><span style="flex:1;"></span><span class="label-sm">Wrap</span><span class="label-sm">Auto-scroll ✓</span><span class="label-sm">Save…</span></div><div class="log-body"><div class="ln"><span class="ts">[12:04:01]</span> <span class="ok">validate</span> ISO checksum OK · 5.42 GB</div><div class="ln"><span class="ts">[12:04:03]</span> <span class="ok">validate</span> target Disk 3 confirmed USB · 29.8 GB · removable</div><div class="ln"><span class="ts">[12:04:05]</span> <span class="ac">mount</span> attaching ISO: Win11_24H2_English_x64.iso</div><div class="ln"><span class="ts">[12:04:13]</span> <span class="ok">mount</span> mounted at G:\ (read-only)</div><div class="ln"><span class="ts">[12:04:14]</span> <span class="ac">wipe</span> diskpart: clean Disk 3</div><div class="ln"><span class="ts">[12:04:18]</span> <span class="ac">wipe</span> diskpart: convert gpt</div><div class="ln"><span class="ts">[12:04:21]</span> <span class="ac">wipe</span> create partition primary size=29760</div><div class="ln"><span class="ts">[12:04:32]</span> <span class="ac">wipe</span> format fs=fat32 quick label=WIN_USB</div><div class="ln"><span class="ts">[12:04:37]</span> <span class="ok">wipe</span> G:\ ready · 29.79 GB free</div><div class="ln"><span class="ts">[12:04:39]</span> <span class="ac">copy</span> robocopy /MIR /R:1 /W:1 H:\ G:\</div><div class="ln"><span class="ts">[12:04:44]</span> <span class="fg">copy</span> autorun.inf · boot.wim · bootmgr · bootmgr.efi</div><div class="ln"><span class="ts">[12:05:11]</span> <span class="fg">copy</span> efi\* · 21.4 MB</div><div class="ln"><span class="ts">[12:06:48]</span> <span class="fg">copy</span> sources\install.wim · split pending</div><div class="ln"><span class="ts">[12:08:17]</span> <span class="wn">copy</span> long path 248 chars, robocopy /256 fallback</div><div class="ln"><span class="ts">[12:08:33]</span>     <span class="ac">→</span> 3.52 GB / 5.41 GB · 65% · 12.8 MB/s</div></div></div>
+            <section class="side-card right-card focus"><div class="card-inner"><div class="label-sm">Pipeline · 6 phases</div><div class="phase-list"><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Validate ✓</div><div class="detail">0:02 · ISO and USB OK</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Mount ISO ✓</div><div class="detail">0:08 · mounted as G:\</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Wipe & partition ✓</div><div class="detail">0:24 · 29.79 GB free</div></div></div><div class="phase-row active"><svg><use href="#i-spinner"/></svg><div><div class="title">Copy files · 65%</div><div class="detail">3.52 / 5.41 GB · 4:32 elapsed</div><div class="progress" style="margin-top:6px;"><i style="width:65%"></i></div></div></div><div class="phase-row pending"><svg><use href="#i-scissors"/></svg><div><div class="title">Split install.wim</div><div class="detail">pending · about 1 min</div></div></div><div class="phase-row pending"><svg><use href="#i-verify"/></svg><div><div class="title">Verify sample</div><div class="detail">pending · about 30 sec</div></div></div></div><div class="phase-summary"><div class="label-sm">Current operation</div><div class="metric"><span>Rate</span><strong>12.8 MB/s</strong></div><div class="metric"><span>ETA</span><strong>3:50</strong></div></div></div></section>
+          </div>
+          <div class="actionbar"><div class="action-row"><div class="status-pill busy"><svg><use href="#i-spinner"/></svg><span>Copying</span></div><div class="progress"><i style="width:65%"></i></div><div class="actions"><button class="btn" disabled><svg class="ic"><use href="#i-refresh"/></svg>Refresh</button><button class="btn"><svg class="ic"><use href="#i-x"/></svg>Cancel</button><button class="btn primary" disabled><svg class="ic"><use href="#i-check"/></svg>Start build</button></div></div><div class="caption-row"><span class="shield"><svg><use href="#i-shield"/></svg> Elevated worker</span><span class="dotsep">·</span><span class="op">Copying files — 3.52 GB / 5.41 GB · 12.8 MB/s · about 3:50 left</span><span class="version">IsoToUsb · MIT · runs as administrator</span></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-wrap"><div class="frame-label"><span class="pill">Done</span> Success · pipeline remains focal</div>
+      <div class="frame light twin state-done">
+        <div class="winchrome"><div class="title"><svg class="ic"><use href="#i-app"/></svg> IsoToUsb · Workshop</div><div class="spacer"></div><div class="caps"><div class="cap"><svg><use href="#i-min"/></svg></div><div class="cap"><svg><use href="#i-max"/></svg></div><div class="cap close"><svg><use href="#i-cls"/></svg></div></div></div>
+        <div class="content">
+          <div class="workspace">
+            <section class="side-card left-card inactive">
+      <div class="card-inner">
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Source ISO</div>
+          <div class="drop-card">
+            <svg class="big"><use href="#i-iso"/></svg>
+            <div class="drop-title">Win11_24H2_English_x64.iso</div>
+            <div class="drop-sub">5.42 GB · unmounted after build</div>
+            <button class="mini-btn">Browse...</button>
+          </div>
+        </div>
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Target USB</div>
+          <div class="combo"><div class="left"><svg class="ic"><use href="#i-usb"/></svg><span class="label">Disk 3 (G:) - SanDisk Ultra (29.8 GB)</span></div><svg class="chev"><use href="#i-chev-down"/></svg></div>
+        </div>
+        <div>
+          <div class="label-sm">Defaults</div>
+          <div class="defaults">
+            <span>Boot mode</span><span>UEFI</span>
+            <span>Partition scheme</span><span>GPT</span>
+            <span>File system</span><span>FAT32</span>
+            <span>Auto-split install.wim</span><span>On</span>
+          </div>
+        </div>
+        <div style="margin-top:auto;" class="infobar success"><svg class="ic"><use href="#i-check-circle"/></svg><div class="body"><strong>Build complete.</strong><div class="det">SanDisk Ultra is ready to boot on UEFI PCs.</div></div></div>
+      </div></section>
+            <div class="log-panel"><div class="log-head"><svg class="ic"><use href="#i-check-circle"/></svg><span style="font-weight:600;">Log</span><span class="muted">· 312 lines · complete</span><span style="flex:1;"></span><span class="label-sm">Wrap</span><span class="label-sm">Auto-scroll ✓</span><span class="label-sm">Save…</span></div><div class="log-body"><div class="ln"><span class="ts">[12:09:14]</span> <span class="ok">copy</span> done · 5.41 GB · 3,372 files · 4:35</div><div class="ln"><span class="ts">[12:09:15]</span> <span class="ac">split</span> sources\install.wim is 4.9 GB · splitting to FAT32-safe parts</div><div class="ln"><span class="ts">[12:09:17]</span> <span class="ac">split</span> dism /Split-Image /ImageFile:H:\sources\install.wim …</div><div class="ln"><span class="ts">[12:10:08]</span> <span class="fg">split</span> wrote G:\sources\install.swm · 4.00 GB</div><div class="ln"><span class="ts">[12:10:34]</span> <span class="fg">split</span> wrote G:\sources\install2.swm · 1.05 GB</div><div class="ln"><span class="ts">[12:10:38]</span> <span class="ok">split</span> done · 2 parts · 1:23</div><div class="ln"><span class="ts">[12:10:40]</span> <span class="ac">verify</span> sampling 20 files (random + boot critical)</div><div class="ln"><span class="ts">[12:10:42]</span> <span class="fg">verify</span> [01/20] bootmgr.efi · SHA-256 ✓</div><div class="ln"><span class="ts">[12:10:51]</span> <span class="fg">verify</span> [10/20] sources\setup.exe · SHA-256 ✓</div><div class="ln"><span class="ts">[12:11:01]</span> <span class="fg">verify</span> [19/20] efi\microsoft\boot\bcd · SHA-256 ✓</div><div class="ln"><span class="ts">[12:11:05]</span> <span class="ok">verify</span> complete · 20 / 20 files matched</div><div class="ln"><span class="ts">[12:11:07]</span> <span class="ok">done</span> bootable USB ready: Disk 3 (G:) - SanDisk Ultra</div></div></div>
+            <section class="side-card right-card focus"><div class="card-inner"><div class="label-sm">Pipeline · 6 phases</div><div class="phase-list"><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Validate ✓</div><div class="detail">0:02 · checksums OK</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Mount ISO ✓</div><div class="detail">0:08 · unmounted</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Wipe & partition ✓</div><div class="detail">0:24 · GPT/FAT32</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Copy files ✓</div><div class="detail">4:35 · 3,372 files</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Split install.wim ✓</div><div class="detail">1:23 · install.swm + install2.swm</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Verify sample ✓</div><div class="detail">0:34 · 20 / 20 SHA checks</div></div></div></div><div class="phase-summary"><div class="label-sm">Result</div><div class="metric"><span>Total time</span><strong>7:06</strong></div><div class="metric"><span>Status</span><strong>Bootable USB ready</strong></div></div></div></section>
+          </div>
+          <div class="actionbar"><div class="action-row"><div class="status-pill done"><svg><use href="#i-check-circle"/></svg><span>Done</span></div><div class="progress success"><i style="width:100%"></i></div><div class="actions"><button class="btn"><svg class="ic"><use href="#i-refresh"/></svg>Refresh</button><button class="btn" disabled><svg class="ic"><use href="#i-x"/></svg>Cancel</button><button class="btn primary"><svg class="ic"><use href="#i-check"/></svg>Start build</button></div></div><div class="caption-row"><span class="shield"><svg><use href="#i-shield"/></svg> Elevated worker</span><span class="dotsep">·</span><span class="op">Completed successfully — bootable USB is ready.</span><span class="version">IsoToUsb · MIT · runs as administrator</span></div></div>
+        </div>
+      </div>
+    </div></div>
+  <div class="row-label"><span class="swatch" style="background:#202020"></span> Dark theme · Setup / Building / Done</div>
+  <div class="row">
+    <div class="frame-wrap"><div class="frame-label"><span class="pill">Setup</span> Idle · left card raised</div>
+      <div class="frame dark twin state-setup">
+        <div class="winchrome"><div class="title"><svg class="ic"><use href="#i-app"/></svg> IsoToUsb · Workshop</div><div class="spacer"></div><div class="caps"><div class="cap"><svg><use href="#i-min"/></svg></div><div class="cap"><svg><use href="#i-max"/></svg></div><div class="cap close"><svg><use href="#i-cls"/></svg></div></div></div>
+        <div class="content">
+          <div class="workspace">
+            <section class="side-card left-card focus">
+      <div class="card-inner">
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Source ISO</div>
+          <div class="drop-card">
+            <svg class="big"><use href="#i-iso"/></svg>
+            <div class="drop-title">Win11_24H2_English_x64.iso</div>
+            <div class="drop-sub">5.42 GB · drop another to replace</div>
+            <button class="mini-btn">Browse...</button>
+          </div>
+        </div>
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Target USB</div>
+          <div class="combo"><div class="left"><svg class="ic"><use href="#i-usb"/></svg><span class="label">Disk 3 (G:) - SanDisk Ultra (29.8 GB)</span></div><svg class="chev"><use href="#i-chev-down"/></svg></div>
+        </div>
+        <div>
+          <div class="label-sm">Defaults</div>
+          <div class="defaults">
+            <span>Boot mode</span><span>UEFI</span>
+            <span>Partition scheme</span><span>GPT</span>
+            <span>File system</span><span>FAT32</span>
+            <span>Auto-split install.wim</span><span>On</span>
+          </div>
+        </div>
+        <div style="margin-top:auto;" class="infobar info"><svg class="ic"><use href="#i-info"/></svg><div class="body">Strong defaults: UEFI · GPT · FAT32. Target USB will be wiped.</div></div>
+      </div></section>
+            <div class="log-panel"><div class="log-head"><svg class="ic"><use href="#i-term"/></svg><span style="font-weight:600;">Log</span><span class="muted">· awaiting start</span><span style="flex:1;"></span><span class="label-sm">Wrap</span><span class="label-sm">Auto-scroll ✓</span><span class="label-sm">Save…</span></div><div class="log-body"><div class="ln"><span class="ts">[--:--:--]</span> <span class="fg">ready.</span> waiting for Start.</div><div class="ln"><span class="ts">[--:--:--]</span> source: Win11_24H2_English_x64.iso (5.42 GB)</div><div class="ln"><span class="ts">[--:--:--]</span> target: \\.\PhysicalDrive3 (SanDisk Ultra, 29.8 GB)</div><div class="ln"><span class="ts">[--:--:--]</span> plan: validate → mount → wipe → copy → split → verify</div><div class="ln"><span class="ts">[--:--:--]</span> defaults: UEFI · GPT · FAT32 · auto-split enabled</div></div></div>
+            <section class="side-card right-card inactive"><div class="card-inner"><div class="label-sm">Pipeline · 6 phases</div><div class="phase-list"><div class="phase-row pending"><svg><use href="#i-validate"/></svg><div><div class="title">Validate</div><div class="detail">checksums · disk & size sanity</div></div></div><div class="phase-row pending"><svg><use href="#i-mount"/></svg><div><div class="title">Mount ISO</div><div class="detail">attach as virtual disk</div></div></div><div class="phase-row pending"><svg><use href="#i-wipe"/></svg><div><div class="title">Wipe & partition</div><div class="detail">GPT · FAT32 · WIN_USB</div></div></div><div class="phase-row pending"><svg><use href="#i-copy"/></svg><div><div class="title">Copy files</div><div class="detail">~5.42 GB · longest phase</div></div></div><div class="phase-row pending"><svg><use href="#i-scissors"/></svg><div><div class="title">Split install.wim</div><div class="detail">2 parts · under 4 GB each</div></div></div><div class="phase-row pending"><svg><use href="#i-verify"/></svg><div><div class="title">Verify sample</div><div class="detail">20 random files · SHA</div></div></div></div><div class="phase-summary"><div class="label-sm">Estimated</div><div class="metric"><span>Total</span><strong>~7 min</strong></div><div class="metric"><span>Data to write</span><strong>5.42 GB</strong></div></div></div></section>
+          </div>
+          <div class="actionbar"><div class="action-row"><div class="status-pill ready"><svg><use href="#i-term"/></svg><span>Ready</span></div><div class="progress"><i style="width:0%"></i></div><div class="actions"><button class="btn"><svg class="ic"><use href="#i-refresh"/></svg>Refresh</button><button class="btn" disabled><svg class="ic"><use href="#i-x"/></svg>Cancel</button><button class="btn primary"><svg class="ic"><use href="#i-check"/></svg>Start build</button></div></div><div class="caption-row"><span class="shield"><svg><use href="#i-shield"/></svg> Elevated worker</span><span class="dotsep">·</span><span class="op">Choose an ISO and target USB, then start the build.</span><span class="version">IsoToUsb · MIT · runs as administrator</span></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-wrap"><div class="frame-label"><span class="pill">Building</span> Running · right card raised</div>
+      <div class="frame dark twin state-building">
+        <div class="winchrome"><div class="title"><svg class="ic"><use href="#i-app"/></svg> IsoToUsb · Workshop</div><div class="spacer"></div><div class="caps"><div class="cap"><svg><use href="#i-min"/></svg></div><div class="cap"><svg><use href="#i-max"/></svg></div><div class="cap close"><svg><use href="#i-cls"/></svg></div></div></div>
+        <div class="content">
+          <div class="workspace">
+            <section class="side-card left-card inactive">
+      <div class="card-inner">
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Source ISO</div>
+          <div class="drop-card locked">
+            <svg class="big"><use href="#i-iso"/></svg>
+            <div class="drop-title">Win11_24H2_English_x64.iso</div>
+            <div class="drop-sub">5.42 GB · mounted read-only as G:\</div>
+            <button class="mini-btn" disabled>Browse...</button>
+          </div>
+        </div>
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Target USB</div>
+          <div class="combo locked"><div class="left"><svg class="ic"><use href="#i-usb"/></svg><span class="label">Disk 3 (G:) - SanDisk Ultra (29.8 GB)</span></div></div>
+        </div>
+        <div>
+          <div class="label-sm">Defaults</div>
+          <div class="defaults">
+            <span>Boot mode</span><span>UEFI</span>
+            <span>Partition scheme</span><span>GPT</span>
+            <span>File system</span><span>FAT32</span>
+            <span>Auto-split install.wim</span><span>On</span>
+          </div>
+        </div>
+        <div style="margin-top:auto;" class="infobar info"><svg class="ic"><use href="#i-info"/></svg><div class="body">Inputs are locked while files are being copied. Cancel to make changes.</div></div>
+      </div></section>
+            <div class="log-panel"><div class="log-head"><svg class="ic"><use href="#i-spinner"/></svg><span style="font-weight:600;">Log</span><span class="muted">· streaming · phase copy</span><span style="flex:1;"></span><span class="label-sm">Wrap</span><span class="label-sm">Auto-scroll ✓</span><span class="label-sm">Save…</span></div><div class="log-body"><div class="ln"><span class="ts">[12:04:01]</span> <span class="ok">validate</span> ISO checksum OK · 5.42 GB</div><div class="ln"><span class="ts">[12:04:03]</span> <span class="ok">validate</span> target Disk 3 confirmed USB · 29.8 GB · removable</div><div class="ln"><span class="ts">[12:04:05]</span> <span class="ac">mount</span> attaching ISO: Win11_24H2_English_x64.iso</div><div class="ln"><span class="ts">[12:04:13]</span> <span class="ok">mount</span> mounted at G:\ (read-only)</div><div class="ln"><span class="ts">[12:04:14]</span> <span class="ac">wipe</span> diskpart: clean Disk 3</div><div class="ln"><span class="ts">[12:04:18]</span> <span class="ac">wipe</span> diskpart: convert gpt</div><div class="ln"><span class="ts">[12:04:21]</span> <span class="ac">wipe</span> create partition primary size=29760</div><div class="ln"><span class="ts">[12:04:32]</span> <span class="ac">wipe</span> format fs=fat32 quick label=WIN_USB</div><div class="ln"><span class="ts">[12:04:37]</span> <span class="ok">wipe</span> G:\ ready · 29.79 GB free</div><div class="ln"><span class="ts">[12:04:39]</span> <span class="ac">copy</span> robocopy /MIR /R:1 /W:1 H:\ G:\</div><div class="ln"><span class="ts">[12:04:44]</span> <span class="fg">copy</span> autorun.inf · boot.wim · bootmgr · bootmgr.efi</div><div class="ln"><span class="ts">[12:05:11]</span> <span class="fg">copy</span> efi\* · 21.4 MB</div><div class="ln"><span class="ts">[12:06:48]</span> <span class="fg">copy</span> sources\install.wim · split pending</div><div class="ln"><span class="ts">[12:08:17]</span> <span class="wn">copy</span> long path 248 chars, robocopy /256 fallback</div><div class="ln"><span class="ts">[12:08:33]</span>     <span class="ac">→</span> 3.52 GB / 5.41 GB · 65% · 12.8 MB/s</div></div></div>
+            <section class="side-card right-card focus"><div class="card-inner"><div class="label-sm">Pipeline · 6 phases</div><div class="phase-list"><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Validate ✓</div><div class="detail">0:02 · ISO and USB OK</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Mount ISO ✓</div><div class="detail">0:08 · mounted as G:\</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Wipe & partition ✓</div><div class="detail">0:24 · 29.79 GB free</div></div></div><div class="phase-row active"><svg><use href="#i-spinner"/></svg><div><div class="title">Copy files · 65%</div><div class="detail">3.52 / 5.41 GB · 4:32 elapsed</div><div class="progress" style="margin-top:6px;"><i style="width:65%"></i></div></div></div><div class="phase-row pending"><svg><use href="#i-scissors"/></svg><div><div class="title">Split install.wim</div><div class="detail">pending · about 1 min</div></div></div><div class="phase-row pending"><svg><use href="#i-verify"/></svg><div><div class="title">Verify sample</div><div class="detail">pending · about 30 sec</div></div></div></div><div class="phase-summary"><div class="label-sm">Current operation</div><div class="metric"><span>Rate</span><strong>12.8 MB/s</strong></div><div class="metric"><span>ETA</span><strong>3:50</strong></div></div></div></section>
+          </div>
+          <div class="actionbar"><div class="action-row"><div class="status-pill busy"><svg><use href="#i-spinner"/></svg><span>Copying</span></div><div class="progress"><i style="width:65%"></i></div><div class="actions"><button class="btn" disabled><svg class="ic"><use href="#i-refresh"/></svg>Refresh</button><button class="btn"><svg class="ic"><use href="#i-x"/></svg>Cancel</button><button class="btn primary" disabled><svg class="ic"><use href="#i-check"/></svg>Start build</button></div></div><div class="caption-row"><span class="shield"><svg><use href="#i-shield"/></svg> Elevated worker</span><span class="dotsep">·</span><span class="op">Copying files — 3.52 GB / 5.41 GB · 12.8 MB/s · about 3:50 left</span><span class="version">IsoToUsb · MIT · runs as administrator</span></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-wrap"><div class="frame-label"><span class="pill">Done</span> Success · pipeline remains focal</div>
+      <div class="frame dark twin state-done">
+        <div class="winchrome"><div class="title"><svg class="ic"><use href="#i-app"/></svg> IsoToUsb · Workshop</div><div class="spacer"></div><div class="caps"><div class="cap"><svg><use href="#i-min"/></svg></div><div class="cap"><svg><use href="#i-max"/></svg></div><div class="cap close"><svg><use href="#i-cls"/></svg></div></div></div>
+        <div class="content">
+          <div class="workspace">
+            <section class="side-card left-card inactive">
+      <div class="card-inner">
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Source ISO</div>
+          <div class="drop-card">
+            <svg class="big"><use href="#i-iso"/></svg>
+            <div class="drop-title">Win11_24H2_English_x64.iso</div>
+            <div class="drop-sub">5.42 GB · unmounted after build</div>
+            <button class="mini-btn">Browse...</button>
+          </div>
+        </div>
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Target USB</div>
+          <div class="combo"><div class="left"><svg class="ic"><use href="#i-usb"/></svg><span class="label">Disk 3 (G:) - SanDisk Ultra (29.8 GB)</span></div><svg class="chev"><use href="#i-chev-down"/></svg></div>
+        </div>
+        <div>
+          <div class="label-sm">Defaults</div>
+          <div class="defaults">
+            <span>Boot mode</span><span>UEFI</span>
+            <span>Partition scheme</span><span>GPT</span>
+            <span>File system</span><span>FAT32</span>
+            <span>Auto-split install.wim</span><span>On</span>
+          </div>
+        </div>
+        <div style="margin-top:auto;" class="infobar success"><svg class="ic"><use href="#i-check-circle"/></svg><div class="body"><strong>Build complete.</strong><div class="det">SanDisk Ultra is ready to boot on UEFI PCs.</div></div></div>
+      </div></section>
+            <div class="log-panel"><div class="log-head"><svg class="ic"><use href="#i-check-circle"/></svg><span style="font-weight:600;">Log</span><span class="muted">· 312 lines · complete</span><span style="flex:1;"></span><span class="label-sm">Wrap</span><span class="label-sm">Auto-scroll ✓</span><span class="label-sm">Save…</span></div><div class="log-body"><div class="ln"><span class="ts">[12:09:14]</span> <span class="ok">copy</span> done · 5.41 GB · 3,372 files · 4:35</div><div class="ln"><span class="ts">[12:09:15]</span> <span class="ac">split</span> sources\install.wim is 4.9 GB · splitting to FAT32-safe parts</div><div class="ln"><span class="ts">[12:09:17]</span> <span class="ac">split</span> dism /Split-Image /ImageFile:H:\sources\install.wim …</div><div class="ln"><span class="ts">[12:10:08]</span> <span class="fg">split</span> wrote G:\sources\install.swm · 4.00 GB</div><div class="ln"><span class="ts">[12:10:34]</span> <span class="fg">split</span> wrote G:\sources\install2.swm · 1.05 GB</div><div class="ln"><span class="ts">[12:10:38]</span> <span class="ok">split</span> done · 2 parts · 1:23</div><div class="ln"><span class="ts">[12:10:40]</span> <span class="ac">verify</span> sampling 20 files (random + boot critical)</div><div class="ln"><span class="ts">[12:10:42]</span> <span class="fg">verify</span> [01/20] bootmgr.efi · SHA-256 ✓</div><div class="ln"><span class="ts">[12:10:51]</span> <span class="fg">verify</span> [10/20] sources\setup.exe · SHA-256 ✓</div><div class="ln"><span class="ts">[12:11:01]</span> <span class="fg">verify</span> [19/20] efi\microsoft\boot\bcd · SHA-256 ✓</div><div class="ln"><span class="ts">[12:11:05]</span> <span class="ok">verify</span> complete · 20 / 20 files matched</div><div class="ln"><span class="ts">[12:11:07]</span> <span class="ok">done</span> bootable USB ready: Disk 3 (G:) - SanDisk Ultra</div></div></div>
+            <section class="side-card right-card focus"><div class="card-inner"><div class="label-sm">Pipeline · 6 phases</div><div class="phase-list"><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Validate ✓</div><div class="detail">0:02 · checksums OK</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Mount ISO ✓</div><div class="detail">0:08 · unmounted</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Wipe & partition ✓</div><div class="detail">0:24 · GPT/FAT32</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Copy files ✓</div><div class="detail">4:35 · 3,372 files</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Split install.wim ✓</div><div class="detail">1:23 · install.swm + install2.swm</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Verify sample ✓</div><div class="detail">0:34 · 20 / 20 SHA checks</div></div></div></div><div class="phase-summary"><div class="label-sm">Result</div><div class="metric"><span>Total time</span><strong>7:06</strong></div><div class="metric"><span>Status</span><strong>Bootable USB ready</strong></div></div></div></section>
+          </div>
+          <div class="actionbar"><div class="action-row"><div class="status-pill done"><svg><use href="#i-check-circle"/></svg><span>Done</span></div><div class="progress success"><i style="width:100%"></i></div><div class="actions"><button class="btn"><svg class="ic"><use href="#i-refresh"/></svg>Refresh</button><button class="btn" disabled><svg class="ic"><use href="#i-x"/></svg>Cancel</button><button class="btn primary"><svg class="ic"><use href="#i-check"/></svg>Start build</button></div></div><div class="caption-row"><span class="shield"><svg><use href="#i-shield"/></svg> Elevated worker</span><span class="dotsep">·</span><span class="op">Completed successfully — bootable USB is ready.</span><span class="version">IsoToUsb · MIT · runs as administrator</span></div></div>
+        </div>
+      </div>
+    </div></div>
+</section>
+<section id="concept-b" class="concept">
+  <div class="concept-head">
+    <div><span class="tag">Concept B</span><h2>Spotlight + dim</h2><p class="pitch">Both cards stay elevated, but the non-current side receives a translucent wash while the focal card keeps full saturation and a soft accent halo. The eye shift is more theatrical than structural.</p></div>
+    <div><h3>Transition cues</h3><ul><li>Opacity drops to about 68% on the inactive side; saturation reduces slightly.</li><li>Active card gains a subtle 8-13 px accent glow instead of growing.</li><li>Leaving Building removes the wash from inputs and moves success glow to pipeline.</li></ul></div>
+    <div><h3>Pros / cons</h3><ul><li>Very easy to implement with Opacity and a faked overlay Border.</li><li>Strong focus cue for quick scanning.</li><li>Usability concern: dimmed setup card must remain readable for confirming ISO/USB details.</li></ul></div>
+  </div>
+  <div class="row-label"><span class="swatch" style="background:#FFFFFF"></span> Light theme · Setup / Building / Done</div>
+  <div class="row">
+    <div class="frame-wrap"><div class="frame-label"><span class="pill">Setup</span> Idle · left card raised</div>
+      <div class="frame light spotlight state-setup">
+        <div class="winchrome"><div class="title"><svg class="ic"><use href="#i-app"/></svg> IsoToUsb · Workshop</div><div class="spacer"></div><div class="caps"><div class="cap"><svg><use href="#i-min"/></svg></div><div class="cap"><svg><use href="#i-max"/></svg></div><div class="cap close"><svg><use href="#i-cls"/></svg></div></div></div>
+        <div class="content">
+          <div class="workspace">
+            <section class="side-card left-card focus">
+      <div class="card-inner">
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Source ISO</div>
+          <div class="drop-card">
+            <svg class="big"><use href="#i-iso"/></svg>
+            <div class="drop-title">Win11_24H2_English_x64.iso</div>
+            <div class="drop-sub">5.42 GB · drop another to replace</div>
+            <button class="mini-btn">Browse...</button>
+          </div>
+        </div>
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Target USB</div>
+          <div class="combo"><div class="left"><svg class="ic"><use href="#i-usb"/></svg><span class="label">Disk 3 (G:) - SanDisk Ultra (29.8 GB)</span></div><svg class="chev"><use href="#i-chev-down"/></svg></div>
+        </div>
+        <div>
+          <div class="label-sm">Defaults</div>
+          <div class="defaults">
+            <span>Boot mode</span><span>UEFI</span>
+            <span>Partition scheme</span><span>GPT</span>
+            <span>File system</span><span>FAT32</span>
+            <span>Auto-split install.wim</span><span>On</span>
+          </div>
+        </div>
+        <div style="margin-top:auto;" class="infobar info"><svg class="ic"><use href="#i-info"/></svg><div class="body">Strong defaults: UEFI · GPT · FAT32. Target USB will be wiped.</div></div>
+      </div></section>
+            <div class="log-panel"><div class="log-head"><svg class="ic"><use href="#i-term"/></svg><span style="font-weight:600;">Log</span><span class="muted">· awaiting start</span><span style="flex:1;"></span><span class="label-sm">Wrap</span><span class="label-sm">Auto-scroll ✓</span><span class="label-sm">Save…</span></div><div class="log-body"><div class="ln"><span class="ts">[--:--:--]</span> <span class="fg">ready.</span> waiting for Start.</div><div class="ln"><span class="ts">[--:--:--]</span> source: Win11_24H2_English_x64.iso (5.42 GB)</div><div class="ln"><span class="ts">[--:--:--]</span> target: \\.\PhysicalDrive3 (SanDisk Ultra, 29.8 GB)</div><div class="ln"><span class="ts">[--:--:--]</span> plan: validate → mount → wipe → copy → split → verify</div><div class="ln"><span class="ts">[--:--:--]</span> defaults: UEFI · GPT · FAT32 · auto-split enabled</div></div></div>
+            <section class="side-card right-card inactive"><div class="card-inner"><div class="label-sm">Pipeline · 6 phases</div><div class="phase-list"><div class="phase-row pending"><svg><use href="#i-validate"/></svg><div><div class="title">Validate</div><div class="detail">checksums · disk & size sanity</div></div></div><div class="phase-row pending"><svg><use href="#i-mount"/></svg><div><div class="title">Mount ISO</div><div class="detail">attach as virtual disk</div></div></div><div class="phase-row pending"><svg><use href="#i-wipe"/></svg><div><div class="title">Wipe & partition</div><div class="detail">GPT · FAT32 · WIN_USB</div></div></div><div class="phase-row pending"><svg><use href="#i-copy"/></svg><div><div class="title">Copy files</div><div class="detail">~5.42 GB · longest phase</div></div></div><div class="phase-row pending"><svg><use href="#i-scissors"/></svg><div><div class="title">Split install.wim</div><div class="detail">2 parts · under 4 GB each</div></div></div><div class="phase-row pending"><svg><use href="#i-verify"/></svg><div><div class="title">Verify sample</div><div class="detail">20 random files · SHA</div></div></div></div><div class="phase-summary"><div class="label-sm">Estimated</div><div class="metric"><span>Total</span><strong>~7 min</strong></div><div class="metric"><span>Data to write</span><strong>5.42 GB</strong></div></div></div></section>
+          </div>
+          <div class="actionbar"><div class="action-row"><div class="status-pill ready"><svg><use href="#i-term"/></svg><span>Ready</span></div><div class="progress"><i style="width:0%"></i></div><div class="actions"><button class="btn"><svg class="ic"><use href="#i-refresh"/></svg>Refresh</button><button class="btn" disabled><svg class="ic"><use href="#i-x"/></svg>Cancel</button><button class="btn primary"><svg class="ic"><use href="#i-check"/></svg>Start build</button></div></div><div class="caption-row"><span class="shield"><svg><use href="#i-shield"/></svg> Elevated worker</span><span class="dotsep">·</span><span class="op">Choose an ISO and target USB, then start the build.</span><span class="version">IsoToUsb · MIT · runs as administrator</span></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-wrap"><div class="frame-label"><span class="pill">Building</span> Running · right card raised</div>
+      <div class="frame light spotlight state-building">
+        <div class="winchrome"><div class="title"><svg class="ic"><use href="#i-app"/></svg> IsoToUsb · Workshop</div><div class="spacer"></div><div class="caps"><div class="cap"><svg><use href="#i-min"/></svg></div><div class="cap"><svg><use href="#i-max"/></svg></div><div class="cap close"><svg><use href="#i-cls"/></svg></div></div></div>
+        <div class="content">
+          <div class="workspace">
+            <section class="side-card left-card inactive">
+      <div class="card-inner">
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Source ISO</div>
+          <div class="drop-card locked">
+            <svg class="big"><use href="#i-iso"/></svg>
+            <div class="drop-title">Win11_24H2_English_x64.iso</div>
+            <div class="drop-sub">5.42 GB · mounted read-only as G:\</div>
+            <button class="mini-btn" disabled>Browse...</button>
+          </div>
+        </div>
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Target USB</div>
+          <div class="combo locked"><div class="left"><svg class="ic"><use href="#i-usb"/></svg><span class="label">Disk 3 (G:) - SanDisk Ultra (29.8 GB)</span></div></div>
+        </div>
+        <div>
+          <div class="label-sm">Defaults</div>
+          <div class="defaults">
+            <span>Boot mode</span><span>UEFI</span>
+            <span>Partition scheme</span><span>GPT</span>
+            <span>File system</span><span>FAT32</span>
+            <span>Auto-split install.wim</span><span>On</span>
+          </div>
+        </div>
+        <div style="margin-top:auto;" class="infobar info"><svg class="ic"><use href="#i-info"/></svg><div class="body">Inputs are locked while files are being copied. Cancel to make changes.</div></div>
+      </div></section>
+            <div class="log-panel"><div class="log-head"><svg class="ic"><use href="#i-spinner"/></svg><span style="font-weight:600;">Log</span><span class="muted">· streaming · phase copy</span><span style="flex:1;"></span><span class="label-sm">Wrap</span><span class="label-sm">Auto-scroll ✓</span><span class="label-sm">Save…</span></div><div class="log-body"><div class="ln"><span class="ts">[12:04:01]</span> <span class="ok">validate</span> ISO checksum OK · 5.42 GB</div><div class="ln"><span class="ts">[12:04:03]</span> <span class="ok">validate</span> target Disk 3 confirmed USB · 29.8 GB · removable</div><div class="ln"><span class="ts">[12:04:05]</span> <span class="ac">mount</span> attaching ISO: Win11_24H2_English_x64.iso</div><div class="ln"><span class="ts">[12:04:13]</span> <span class="ok">mount</span> mounted at G:\ (read-only)</div><div class="ln"><span class="ts">[12:04:14]</span> <span class="ac">wipe</span> diskpart: clean Disk 3</div><div class="ln"><span class="ts">[12:04:18]</span> <span class="ac">wipe</span> diskpart: convert gpt</div><div class="ln"><span class="ts">[12:04:21]</span> <span class="ac">wipe</span> create partition primary size=29760</div><div class="ln"><span class="ts">[12:04:32]</span> <span class="ac">wipe</span> format fs=fat32 quick label=WIN_USB</div><div class="ln"><span class="ts">[12:04:37]</span> <span class="ok">wipe</span> G:\ ready · 29.79 GB free</div><div class="ln"><span class="ts">[12:04:39]</span> <span class="ac">copy</span> robocopy /MIR /R:1 /W:1 H:\ G:\</div><div class="ln"><span class="ts">[12:04:44]</span> <span class="fg">copy</span> autorun.inf · boot.wim · bootmgr · bootmgr.efi</div><div class="ln"><span class="ts">[12:05:11]</span> <span class="fg">copy</span> efi\* · 21.4 MB</div><div class="ln"><span class="ts">[12:06:48]</span> <span class="fg">copy</span> sources\install.wim · split pending</div><div class="ln"><span class="ts">[12:08:17]</span> <span class="wn">copy</span> long path 248 chars, robocopy /256 fallback</div><div class="ln"><span class="ts">[12:08:33]</span>     <span class="ac">→</span> 3.52 GB / 5.41 GB · 65% · 12.8 MB/s</div></div></div>
+            <section class="side-card right-card focus"><div class="card-inner"><div class="label-sm">Pipeline · 6 phases</div><div class="phase-list"><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Validate ✓</div><div class="detail">0:02 · ISO and USB OK</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Mount ISO ✓</div><div class="detail">0:08 · mounted as G:\</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Wipe & partition ✓</div><div class="detail">0:24 · 29.79 GB free</div></div></div><div class="phase-row active"><svg><use href="#i-spinner"/></svg><div><div class="title">Copy files · 65%</div><div class="detail">3.52 / 5.41 GB · 4:32 elapsed</div><div class="progress" style="margin-top:6px;"><i style="width:65%"></i></div></div></div><div class="phase-row pending"><svg><use href="#i-scissors"/></svg><div><div class="title">Split install.wim</div><div class="detail">pending · about 1 min</div></div></div><div class="phase-row pending"><svg><use href="#i-verify"/></svg><div><div class="title">Verify sample</div><div class="detail">pending · about 30 sec</div></div></div></div><div class="phase-summary"><div class="label-sm">Current operation</div><div class="metric"><span>Rate</span><strong>12.8 MB/s</strong></div><div class="metric"><span>ETA</span><strong>3:50</strong></div></div></div></section>
+          </div>
+          <div class="actionbar"><div class="action-row"><div class="status-pill busy"><svg><use href="#i-spinner"/></svg><span>Copying</span></div><div class="progress"><i style="width:65%"></i></div><div class="actions"><button class="btn" disabled><svg class="ic"><use href="#i-refresh"/></svg>Refresh</button><button class="btn"><svg class="ic"><use href="#i-x"/></svg>Cancel</button><button class="btn primary" disabled><svg class="ic"><use href="#i-check"/></svg>Start build</button></div></div><div class="caption-row"><span class="shield"><svg><use href="#i-shield"/></svg> Elevated worker</span><span class="dotsep">·</span><span class="op">Copying files — 3.52 GB / 5.41 GB · 12.8 MB/s · about 3:50 left</span><span class="version">IsoToUsb · MIT · runs as administrator</span></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-wrap"><div class="frame-label"><span class="pill">Done</span> Success · pipeline remains focal</div>
+      <div class="frame light spotlight state-done">
+        <div class="winchrome"><div class="title"><svg class="ic"><use href="#i-app"/></svg> IsoToUsb · Workshop</div><div class="spacer"></div><div class="caps"><div class="cap"><svg><use href="#i-min"/></svg></div><div class="cap"><svg><use href="#i-max"/></svg></div><div class="cap close"><svg><use href="#i-cls"/></svg></div></div></div>
+        <div class="content">
+          <div class="workspace">
+            <section class="side-card left-card inactive">
+      <div class="card-inner">
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Source ISO</div>
+          <div class="drop-card">
+            <svg class="big"><use href="#i-iso"/></svg>
+            <div class="drop-title">Win11_24H2_English_x64.iso</div>
+            <div class="drop-sub">5.42 GB · unmounted after build</div>
+            <button class="mini-btn">Browse...</button>
+          </div>
+        </div>
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Target USB</div>
+          <div class="combo"><div class="left"><svg class="ic"><use href="#i-usb"/></svg><span class="label">Disk 3 (G:) - SanDisk Ultra (29.8 GB)</span></div><svg class="chev"><use href="#i-chev-down"/></svg></div>
+        </div>
+        <div>
+          <div class="label-sm">Defaults</div>
+          <div class="defaults">
+            <span>Boot mode</span><span>UEFI</span>
+            <span>Partition scheme</span><span>GPT</span>
+            <span>File system</span><span>FAT32</span>
+            <span>Auto-split install.wim</span><span>On</span>
+          </div>
+        </div>
+        <div style="margin-top:auto;" class="infobar success"><svg class="ic"><use href="#i-check-circle"/></svg><div class="body"><strong>Build complete.</strong><div class="det">SanDisk Ultra is ready to boot on UEFI PCs.</div></div></div>
+      </div></section>
+            <div class="log-panel"><div class="log-head"><svg class="ic"><use href="#i-check-circle"/></svg><span style="font-weight:600;">Log</span><span class="muted">· 312 lines · complete</span><span style="flex:1;"></span><span class="label-sm">Wrap</span><span class="label-sm">Auto-scroll ✓</span><span class="label-sm">Save…</span></div><div class="log-body"><div class="ln"><span class="ts">[12:09:14]</span> <span class="ok">copy</span> done · 5.41 GB · 3,372 files · 4:35</div><div class="ln"><span class="ts">[12:09:15]</span> <span class="ac">split</span> sources\install.wim is 4.9 GB · splitting to FAT32-safe parts</div><div class="ln"><span class="ts">[12:09:17]</span> <span class="ac">split</span> dism /Split-Image /ImageFile:H:\sources\install.wim …</div><div class="ln"><span class="ts">[12:10:08]</span> <span class="fg">split</span> wrote G:\sources\install.swm · 4.00 GB</div><div class="ln"><span class="ts">[12:10:34]</span> <span class="fg">split</span> wrote G:\sources\install2.swm · 1.05 GB</div><div class="ln"><span class="ts">[12:10:38]</span> <span class="ok">split</span> done · 2 parts · 1:23</div><div class="ln"><span class="ts">[12:10:40]</span> <span class="ac">verify</span> sampling 20 files (random + boot critical)</div><div class="ln"><span class="ts">[12:10:42]</span> <span class="fg">verify</span> [01/20] bootmgr.efi · SHA-256 ✓</div><div class="ln"><span class="ts">[12:10:51]</span> <span class="fg">verify</span> [10/20] sources\setup.exe · SHA-256 ✓</div><div class="ln"><span class="ts">[12:11:01]</span> <span class="fg">verify</span> [19/20] efi\microsoft\boot\bcd · SHA-256 ✓</div><div class="ln"><span class="ts">[12:11:05]</span> <span class="ok">verify</span> complete · 20 / 20 files matched</div><div class="ln"><span class="ts">[12:11:07]</span> <span class="ok">done</span> bootable USB ready: Disk 3 (G:) - SanDisk Ultra</div></div></div>
+            <section class="side-card right-card focus"><div class="card-inner"><div class="label-sm">Pipeline · 6 phases</div><div class="phase-list"><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Validate ✓</div><div class="detail">0:02 · checksums OK</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Mount ISO ✓</div><div class="detail">0:08 · unmounted</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Wipe & partition ✓</div><div class="detail">0:24 · GPT/FAT32</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Copy files ✓</div><div class="detail">4:35 · 3,372 files</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Split install.wim ✓</div><div class="detail">1:23 · install.swm + install2.swm</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Verify sample ✓</div><div class="detail">0:34 · 20 / 20 SHA checks</div></div></div></div><div class="phase-summary"><div class="label-sm">Result</div><div class="metric"><span>Total time</span><strong>7:06</strong></div><div class="metric"><span>Status</span><strong>Bootable USB ready</strong></div></div></div></section>
+          </div>
+          <div class="actionbar"><div class="action-row"><div class="status-pill done"><svg><use href="#i-check-circle"/></svg><span>Done</span></div><div class="progress success"><i style="width:100%"></i></div><div class="actions"><button class="btn"><svg class="ic"><use href="#i-refresh"/></svg>Refresh</button><button class="btn" disabled><svg class="ic"><use href="#i-x"/></svg>Cancel</button><button class="btn primary"><svg class="ic"><use href="#i-check"/></svg>Start build</button></div></div><div class="caption-row"><span class="shield"><svg><use href="#i-shield"/></svg> Elevated worker</span><span class="dotsep">·</span><span class="op">Completed successfully — bootable USB is ready.</span><span class="version">IsoToUsb · MIT · runs as administrator</span></div></div>
+        </div>
+      </div>
+    </div></div>
+  <div class="row-label"><span class="swatch" style="background:#202020"></span> Dark theme · Setup / Building / Done</div>
+  <div class="row">
+    <div class="frame-wrap"><div class="frame-label"><span class="pill">Setup</span> Idle · left card raised</div>
+      <div class="frame dark spotlight state-setup">
+        <div class="winchrome"><div class="title"><svg class="ic"><use href="#i-app"/></svg> IsoToUsb · Workshop</div><div class="spacer"></div><div class="caps"><div class="cap"><svg><use href="#i-min"/></svg></div><div class="cap"><svg><use href="#i-max"/></svg></div><div class="cap close"><svg><use href="#i-cls"/></svg></div></div></div>
+        <div class="content">
+          <div class="workspace">
+            <section class="side-card left-card focus">
+      <div class="card-inner">
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Source ISO</div>
+          <div class="drop-card">
+            <svg class="big"><use href="#i-iso"/></svg>
+            <div class="drop-title">Win11_24H2_English_x64.iso</div>
+            <div class="drop-sub">5.42 GB · drop another to replace</div>
+            <button class="mini-btn">Browse...</button>
+          </div>
+        </div>
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Target USB</div>
+          <div class="combo"><div class="left"><svg class="ic"><use href="#i-usb"/></svg><span class="label">Disk 3 (G:) - SanDisk Ultra (29.8 GB)</span></div><svg class="chev"><use href="#i-chev-down"/></svg></div>
+        </div>
+        <div>
+          <div class="label-sm">Defaults</div>
+          <div class="defaults">
+            <span>Boot mode</span><span>UEFI</span>
+            <span>Partition scheme</span><span>GPT</span>
+            <span>File system</span><span>FAT32</span>
+            <span>Auto-split install.wim</span><span>On</span>
+          </div>
+        </div>
+        <div style="margin-top:auto;" class="infobar info"><svg class="ic"><use href="#i-info"/></svg><div class="body">Strong defaults: UEFI · GPT · FAT32. Target USB will be wiped.</div></div>
+      </div></section>
+            <div class="log-panel"><div class="log-head"><svg class="ic"><use href="#i-term"/></svg><span style="font-weight:600;">Log</span><span class="muted">· awaiting start</span><span style="flex:1;"></span><span class="label-sm">Wrap</span><span class="label-sm">Auto-scroll ✓</span><span class="label-sm">Save…</span></div><div class="log-body"><div class="ln"><span class="ts">[--:--:--]</span> <span class="fg">ready.</span> waiting for Start.</div><div class="ln"><span class="ts">[--:--:--]</span> source: Win11_24H2_English_x64.iso (5.42 GB)</div><div class="ln"><span class="ts">[--:--:--]</span> target: \\.\PhysicalDrive3 (SanDisk Ultra, 29.8 GB)</div><div class="ln"><span class="ts">[--:--:--]</span> plan: validate → mount → wipe → copy → split → verify</div><div class="ln"><span class="ts">[--:--:--]</span> defaults: UEFI · GPT · FAT32 · auto-split enabled</div></div></div>
+            <section class="side-card right-card inactive"><div class="card-inner"><div class="label-sm">Pipeline · 6 phases</div><div class="phase-list"><div class="phase-row pending"><svg><use href="#i-validate"/></svg><div><div class="title">Validate</div><div class="detail">checksums · disk & size sanity</div></div></div><div class="phase-row pending"><svg><use href="#i-mount"/></svg><div><div class="title">Mount ISO</div><div class="detail">attach as virtual disk</div></div></div><div class="phase-row pending"><svg><use href="#i-wipe"/></svg><div><div class="title">Wipe & partition</div><div class="detail">GPT · FAT32 · WIN_USB</div></div></div><div class="phase-row pending"><svg><use href="#i-copy"/></svg><div><div class="title">Copy files</div><div class="detail">~5.42 GB · longest phase</div></div></div><div class="phase-row pending"><svg><use href="#i-scissors"/></svg><div><div class="title">Split install.wim</div><div class="detail">2 parts · under 4 GB each</div></div></div><div class="phase-row pending"><svg><use href="#i-verify"/></svg><div><div class="title">Verify sample</div><div class="detail">20 random files · SHA</div></div></div></div><div class="phase-summary"><div class="label-sm">Estimated</div><div class="metric"><span>Total</span><strong>~7 min</strong></div><div class="metric"><span>Data to write</span><strong>5.42 GB</strong></div></div></div></section>
+          </div>
+          <div class="actionbar"><div class="action-row"><div class="status-pill ready"><svg><use href="#i-term"/></svg><span>Ready</span></div><div class="progress"><i style="width:0%"></i></div><div class="actions"><button class="btn"><svg class="ic"><use href="#i-refresh"/></svg>Refresh</button><button class="btn" disabled><svg class="ic"><use href="#i-x"/></svg>Cancel</button><button class="btn primary"><svg class="ic"><use href="#i-check"/></svg>Start build</button></div></div><div class="caption-row"><span class="shield"><svg><use href="#i-shield"/></svg> Elevated worker</span><span class="dotsep">·</span><span class="op">Choose an ISO and target USB, then start the build.</span><span class="version">IsoToUsb · MIT · runs as administrator</span></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-wrap"><div class="frame-label"><span class="pill">Building</span> Running · right card raised</div>
+      <div class="frame dark spotlight state-building">
+        <div class="winchrome"><div class="title"><svg class="ic"><use href="#i-app"/></svg> IsoToUsb · Workshop</div><div class="spacer"></div><div class="caps"><div class="cap"><svg><use href="#i-min"/></svg></div><div class="cap"><svg><use href="#i-max"/></svg></div><div class="cap close"><svg><use href="#i-cls"/></svg></div></div></div>
+        <div class="content">
+          <div class="workspace">
+            <section class="side-card left-card inactive">
+      <div class="card-inner">
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Source ISO</div>
+          <div class="drop-card locked">
+            <svg class="big"><use href="#i-iso"/></svg>
+            <div class="drop-title">Win11_24H2_English_x64.iso</div>
+            <div class="drop-sub">5.42 GB · mounted read-only as G:\</div>
+            <button class="mini-btn" disabled>Browse...</button>
+          </div>
+        </div>
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Target USB</div>
+          <div class="combo locked"><div class="left"><svg class="ic"><use href="#i-usb"/></svg><span class="label">Disk 3 (G:) - SanDisk Ultra (29.8 GB)</span></div></div>
+        </div>
+        <div>
+          <div class="label-sm">Defaults</div>
+          <div class="defaults">
+            <span>Boot mode</span><span>UEFI</span>
+            <span>Partition scheme</span><span>GPT</span>
+            <span>File system</span><span>FAT32</span>
+            <span>Auto-split install.wim</span><span>On</span>
+          </div>
+        </div>
+        <div style="margin-top:auto;" class="infobar info"><svg class="ic"><use href="#i-info"/></svg><div class="body">Inputs are locked while files are being copied. Cancel to make changes.</div></div>
+      </div></section>
+            <div class="log-panel"><div class="log-head"><svg class="ic"><use href="#i-spinner"/></svg><span style="font-weight:600;">Log</span><span class="muted">· streaming · phase copy</span><span style="flex:1;"></span><span class="label-sm">Wrap</span><span class="label-sm">Auto-scroll ✓</span><span class="label-sm">Save…</span></div><div class="log-body"><div class="ln"><span class="ts">[12:04:01]</span> <span class="ok">validate</span> ISO checksum OK · 5.42 GB</div><div class="ln"><span class="ts">[12:04:03]</span> <span class="ok">validate</span> target Disk 3 confirmed USB · 29.8 GB · removable</div><div class="ln"><span class="ts">[12:04:05]</span> <span class="ac">mount</span> attaching ISO: Win11_24H2_English_x64.iso</div><div class="ln"><span class="ts">[12:04:13]</span> <span class="ok">mount</span> mounted at G:\ (read-only)</div><div class="ln"><span class="ts">[12:04:14]</span> <span class="ac">wipe</span> diskpart: clean Disk 3</div><div class="ln"><span class="ts">[12:04:18]</span> <span class="ac">wipe</span> diskpart: convert gpt</div><div class="ln"><span class="ts">[12:04:21]</span> <span class="ac">wipe</span> create partition primary size=29760</div><div class="ln"><span class="ts">[12:04:32]</span> <span class="ac">wipe</span> format fs=fat32 quick label=WIN_USB</div><div class="ln"><span class="ts">[12:04:37]</span> <span class="ok">wipe</span> G:\ ready · 29.79 GB free</div><div class="ln"><span class="ts">[12:04:39]</span> <span class="ac">copy</span> robocopy /MIR /R:1 /W:1 H:\ G:\</div><div class="ln"><span class="ts">[12:04:44]</span> <span class="fg">copy</span> autorun.inf · boot.wim · bootmgr · bootmgr.efi</div><div class="ln"><span class="ts">[12:05:11]</span> <span class="fg">copy</span> efi\* · 21.4 MB</div><div class="ln"><span class="ts">[12:06:48]</span> <span class="fg">copy</span> sources\install.wim · split pending</div><div class="ln"><span class="ts">[12:08:17]</span> <span class="wn">copy</span> long path 248 chars, robocopy /256 fallback</div><div class="ln"><span class="ts">[12:08:33]</span>     <span class="ac">→</span> 3.52 GB / 5.41 GB · 65% · 12.8 MB/s</div></div></div>
+            <section class="side-card right-card focus"><div class="card-inner"><div class="label-sm">Pipeline · 6 phases</div><div class="phase-list"><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Validate ✓</div><div class="detail">0:02 · ISO and USB OK</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Mount ISO ✓</div><div class="detail">0:08 · mounted as G:\</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Wipe & partition ✓</div><div class="detail">0:24 · 29.79 GB free</div></div></div><div class="phase-row active"><svg><use href="#i-spinner"/></svg><div><div class="title">Copy files · 65%</div><div class="detail">3.52 / 5.41 GB · 4:32 elapsed</div><div class="progress" style="margin-top:6px;"><i style="width:65%"></i></div></div></div><div class="phase-row pending"><svg><use href="#i-scissors"/></svg><div><div class="title">Split install.wim</div><div class="detail">pending · about 1 min</div></div></div><div class="phase-row pending"><svg><use href="#i-verify"/></svg><div><div class="title">Verify sample</div><div class="detail">pending · about 30 sec</div></div></div></div><div class="phase-summary"><div class="label-sm">Current operation</div><div class="metric"><span>Rate</span><strong>12.8 MB/s</strong></div><div class="metric"><span>ETA</span><strong>3:50</strong></div></div></div></section>
+          </div>
+          <div class="actionbar"><div class="action-row"><div class="status-pill busy"><svg><use href="#i-spinner"/></svg><span>Copying</span></div><div class="progress"><i style="width:65%"></i></div><div class="actions"><button class="btn" disabled><svg class="ic"><use href="#i-refresh"/></svg>Refresh</button><button class="btn"><svg class="ic"><use href="#i-x"/></svg>Cancel</button><button class="btn primary" disabled><svg class="ic"><use href="#i-check"/></svg>Start build</button></div></div><div class="caption-row"><span class="shield"><svg><use href="#i-shield"/></svg> Elevated worker</span><span class="dotsep">·</span><span class="op">Copying files — 3.52 GB / 5.41 GB · 12.8 MB/s · about 3:50 left</span><span class="version">IsoToUsb · MIT · runs as administrator</span></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-wrap"><div class="frame-label"><span class="pill">Done</span> Success · pipeline remains focal</div>
+      <div class="frame dark spotlight state-done">
+        <div class="winchrome"><div class="title"><svg class="ic"><use href="#i-app"/></svg> IsoToUsb · Workshop</div><div class="spacer"></div><div class="caps"><div class="cap"><svg><use href="#i-min"/></svg></div><div class="cap"><svg><use href="#i-max"/></svg></div><div class="cap close"><svg><use href="#i-cls"/></svg></div></div></div>
+        <div class="content">
+          <div class="workspace">
+            <section class="side-card left-card inactive">
+      <div class="card-inner">
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Source ISO</div>
+          <div class="drop-card">
+            <svg class="big"><use href="#i-iso"/></svg>
+            <div class="drop-title">Win11_24H2_English_x64.iso</div>
+            <div class="drop-sub">5.42 GB · unmounted after build</div>
+            <button class="mini-btn">Browse...</button>
+          </div>
+        </div>
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Target USB</div>
+          <div class="combo"><div class="left"><svg class="ic"><use href="#i-usb"/></svg><span class="label">Disk 3 (G:) - SanDisk Ultra (29.8 GB)</span></div><svg class="chev"><use href="#i-chev-down"/></svg></div>
+        </div>
+        <div>
+          <div class="label-sm">Defaults</div>
+          <div class="defaults">
+            <span>Boot mode</span><span>UEFI</span>
+            <span>Partition scheme</span><span>GPT</span>
+            <span>File system</span><span>FAT32</span>
+            <span>Auto-split install.wim</span><span>On</span>
+          </div>
+        </div>
+        <div style="margin-top:auto;" class="infobar success"><svg class="ic"><use href="#i-check-circle"/></svg><div class="body"><strong>Build complete.</strong><div class="det">SanDisk Ultra is ready to boot on UEFI PCs.</div></div></div>
+      </div></section>
+            <div class="log-panel"><div class="log-head"><svg class="ic"><use href="#i-check-circle"/></svg><span style="font-weight:600;">Log</span><span class="muted">· 312 lines · complete</span><span style="flex:1;"></span><span class="label-sm">Wrap</span><span class="label-sm">Auto-scroll ✓</span><span class="label-sm">Save…</span></div><div class="log-body"><div class="ln"><span class="ts">[12:09:14]</span> <span class="ok">copy</span> done · 5.41 GB · 3,372 files · 4:35</div><div class="ln"><span class="ts">[12:09:15]</span> <span class="ac">split</span> sources\install.wim is 4.9 GB · splitting to FAT32-safe parts</div><div class="ln"><span class="ts">[12:09:17]</span> <span class="ac">split</span> dism /Split-Image /ImageFile:H:\sources\install.wim …</div><div class="ln"><span class="ts">[12:10:08]</span> <span class="fg">split</span> wrote G:\sources\install.swm · 4.00 GB</div><div class="ln"><span class="ts">[12:10:34]</span> <span class="fg">split</span> wrote G:\sources\install2.swm · 1.05 GB</div><div class="ln"><span class="ts">[12:10:38]</span> <span class="ok">split</span> done · 2 parts · 1:23</div><div class="ln"><span class="ts">[12:10:40]</span> <span class="ac">verify</span> sampling 20 files (random + boot critical)</div><div class="ln"><span class="ts">[12:10:42]</span> <span class="fg">verify</span> [01/20] bootmgr.efi · SHA-256 ✓</div><div class="ln"><span class="ts">[12:10:51]</span> <span class="fg">verify</span> [10/20] sources\setup.exe · SHA-256 ✓</div><div class="ln"><span class="ts">[12:11:01]</span> <span class="fg">verify</span> [19/20] efi\microsoft\boot\bcd · SHA-256 ✓</div><div class="ln"><span class="ts">[12:11:05]</span> <span class="ok">verify</span> complete · 20 / 20 files matched</div><div class="ln"><span class="ts">[12:11:07]</span> <span class="ok">done</span> bootable USB ready: Disk 3 (G:) - SanDisk Ultra</div></div></div>
+            <section class="side-card right-card focus"><div class="card-inner"><div class="label-sm">Pipeline · 6 phases</div><div class="phase-list"><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Validate ✓</div><div class="detail">0:02 · checksums OK</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Mount ISO ✓</div><div class="detail">0:08 · unmounted</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Wipe & partition ✓</div><div class="detail">0:24 · GPT/FAT32</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Copy files ✓</div><div class="detail">4:35 · 3,372 files</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Split install.wim ✓</div><div class="detail">1:23 · install.swm + install2.swm</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Verify sample ✓</div><div class="detail">0:34 · 20 / 20 SHA checks</div></div></div></div><div class="phase-summary"><div class="label-sm">Result</div><div class="metric"><span>Total time</span><strong>7:06</strong></div><div class="metric"><span>Status</span><strong>Bootable USB ready</strong></div></div></div></section>
+          </div>
+          <div class="actionbar"><div class="action-row"><div class="status-pill done"><svg><use href="#i-check-circle"/></svg><span>Done</span></div><div class="progress success"><i style="width:100%"></i></div><div class="actions"><button class="btn"><svg class="ic"><use href="#i-refresh"/></svg>Refresh</button><button class="btn" disabled><svg class="ic"><use href="#i-x"/></svg>Cancel</button><button class="btn primary"><svg class="ic"><use href="#i-check"/></svg>Start build</button></div></div><div class="caption-row"><span class="shield"><svg><use href="#i-shield"/></svg> Elevated worker</span><span class="dotsep">·</span><span class="op">Completed successfully — bootable USB is ready.</span><span class="version">IsoToUsb · MIT · runs as administrator</span></div></div>
+        </div>
+      </div>
+    </div></div>
+</section>
+<section id="concept-c" class="concept">
+  <div class="concept-head">
+    <div><span class="tag">Concept C</span><h2>Stacked z-order</h2><p class="pitch">The focal side visually overlaps a sliver of the sunken log, implying it is physically in front. During setup, left tucks over the log; during build, right tucks over it.</p></div>
+    <div><h3>Transition cues</h3><ul><li>Active card moves 7 px toward the log and rises 4 px.</li><li>Negative margin creates a controlled 22 px overlap while preserving the same grid footprint.</li><li>Inactive side scales down only to 98.5% to avoid jarring row movement.</li></ul></div>
+    <div><h3>Pros / cons</h3><ul><li>Most spatial and memorable option; makes z-order legible without adding labels.</li><li>Implementation risk is moderate: overlap needs clipping discipline in XAML and scale can look janky on slow GPUs.</li><li>Log loses a small edge under the active card, so dense log readers may object.</li></ul></div>
+  </div>
+  <div class="row-label"><span class="swatch" style="background:#FFFFFF"></span> Light theme · Setup / Building / Done</div>
+  <div class="row">
+    <div class="frame-wrap"><div class="frame-label"><span class="pill">Setup</span> Idle · left card raised</div>
+      <div class="frame light stack state-setup">
+        <div class="winchrome"><div class="title"><svg class="ic"><use href="#i-app"/></svg> IsoToUsb · Workshop</div><div class="spacer"></div><div class="caps"><div class="cap"><svg><use href="#i-min"/></svg></div><div class="cap"><svg><use href="#i-max"/></svg></div><div class="cap close"><svg><use href="#i-cls"/></svg></div></div></div>
+        <div class="content">
+          <div class="workspace">
+            <section class="side-card left-card focus">
+      <div class="card-inner">
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Source ISO</div>
+          <div class="drop-card">
+            <svg class="big"><use href="#i-iso"/></svg>
+            <div class="drop-title">Win11_24H2_English_x64.iso</div>
+            <div class="drop-sub">5.42 GB · drop another to replace</div>
+            <button class="mini-btn">Browse...</button>
+          </div>
+        </div>
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Target USB</div>
+          <div class="combo"><div class="left"><svg class="ic"><use href="#i-usb"/></svg><span class="label">Disk 3 (G:) - SanDisk Ultra (29.8 GB)</span></div><svg class="chev"><use href="#i-chev-down"/></svg></div>
+        </div>
+        <div>
+          <div class="label-sm">Defaults</div>
+          <div class="defaults">
+            <span>Boot mode</span><span>UEFI</span>
+            <span>Partition scheme</span><span>GPT</span>
+            <span>File system</span><span>FAT32</span>
+            <span>Auto-split install.wim</span><span>On</span>
+          </div>
+        </div>
+        <div style="margin-top:auto;" class="infobar info"><svg class="ic"><use href="#i-info"/></svg><div class="body">Strong defaults: UEFI · GPT · FAT32. Target USB will be wiped.</div></div>
+      </div></section>
+            <div class="log-panel"><div class="log-head"><svg class="ic"><use href="#i-term"/></svg><span style="font-weight:600;">Log</span><span class="muted">· awaiting start</span><span style="flex:1;"></span><span class="label-sm">Wrap</span><span class="label-sm">Auto-scroll ✓</span><span class="label-sm">Save…</span></div><div class="log-body"><div class="ln"><span class="ts">[--:--:--]</span> <span class="fg">ready.</span> waiting for Start.</div><div class="ln"><span class="ts">[--:--:--]</span> source: Win11_24H2_English_x64.iso (5.42 GB)</div><div class="ln"><span class="ts">[--:--:--]</span> target: \\.\PhysicalDrive3 (SanDisk Ultra, 29.8 GB)</div><div class="ln"><span class="ts">[--:--:--]</span> plan: validate → mount → wipe → copy → split → verify</div><div class="ln"><span class="ts">[--:--:--]</span> defaults: UEFI · GPT · FAT32 · auto-split enabled</div></div></div>
+            <section class="side-card right-card inactive"><div class="card-inner"><div class="label-sm">Pipeline · 6 phases</div><div class="phase-list"><div class="phase-row pending"><svg><use href="#i-validate"/></svg><div><div class="title">Validate</div><div class="detail">checksums · disk & size sanity</div></div></div><div class="phase-row pending"><svg><use href="#i-mount"/></svg><div><div class="title">Mount ISO</div><div class="detail">attach as virtual disk</div></div></div><div class="phase-row pending"><svg><use href="#i-wipe"/></svg><div><div class="title">Wipe & partition</div><div class="detail">GPT · FAT32 · WIN_USB</div></div></div><div class="phase-row pending"><svg><use href="#i-copy"/></svg><div><div class="title">Copy files</div><div class="detail">~5.42 GB · longest phase</div></div></div><div class="phase-row pending"><svg><use href="#i-scissors"/></svg><div><div class="title">Split install.wim</div><div class="detail">2 parts · under 4 GB each</div></div></div><div class="phase-row pending"><svg><use href="#i-verify"/></svg><div><div class="title">Verify sample</div><div class="detail">20 random files · SHA</div></div></div></div><div class="phase-summary"><div class="label-sm">Estimated</div><div class="metric"><span>Total</span><strong>~7 min</strong></div><div class="metric"><span>Data to write</span><strong>5.42 GB</strong></div></div></div></section>
+          </div>
+          <div class="actionbar"><div class="action-row"><div class="status-pill ready"><svg><use href="#i-term"/></svg><span>Ready</span></div><div class="progress"><i style="width:0%"></i></div><div class="actions"><button class="btn"><svg class="ic"><use href="#i-refresh"/></svg>Refresh</button><button class="btn" disabled><svg class="ic"><use href="#i-x"/></svg>Cancel</button><button class="btn primary"><svg class="ic"><use href="#i-check"/></svg>Start build</button></div></div><div class="caption-row"><span class="shield"><svg><use href="#i-shield"/></svg> Elevated worker</span><span class="dotsep">·</span><span class="op">Choose an ISO and target USB, then start the build.</span><span class="version">IsoToUsb · MIT · runs as administrator</span></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-wrap"><div class="frame-label"><span class="pill">Building</span> Running · right card raised</div>
+      <div class="frame light stack state-building">
+        <div class="winchrome"><div class="title"><svg class="ic"><use href="#i-app"/></svg> IsoToUsb · Workshop</div><div class="spacer"></div><div class="caps"><div class="cap"><svg><use href="#i-min"/></svg></div><div class="cap"><svg><use href="#i-max"/></svg></div><div class="cap close"><svg><use href="#i-cls"/></svg></div></div></div>
+        <div class="content">
+          <div class="workspace">
+            <section class="side-card left-card inactive">
+      <div class="card-inner">
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Source ISO</div>
+          <div class="drop-card locked">
+            <svg class="big"><use href="#i-iso"/></svg>
+            <div class="drop-title">Win11_24H2_English_x64.iso</div>
+            <div class="drop-sub">5.42 GB · mounted read-only as G:\</div>
+            <button class="mini-btn" disabled>Browse...</button>
+          </div>
+        </div>
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Target USB</div>
+          <div class="combo locked"><div class="left"><svg class="ic"><use href="#i-usb"/></svg><span class="label">Disk 3 (G:) - SanDisk Ultra (29.8 GB)</span></div></div>
+        </div>
+        <div>
+          <div class="label-sm">Defaults</div>
+          <div class="defaults">
+            <span>Boot mode</span><span>UEFI</span>
+            <span>Partition scheme</span><span>GPT</span>
+            <span>File system</span><span>FAT32</span>
+            <span>Auto-split install.wim</span><span>On</span>
+          </div>
+        </div>
+        <div style="margin-top:auto;" class="infobar info"><svg class="ic"><use href="#i-info"/></svg><div class="body">Inputs are locked while files are being copied. Cancel to make changes.</div></div>
+      </div></section>
+            <div class="log-panel"><div class="log-head"><svg class="ic"><use href="#i-spinner"/></svg><span style="font-weight:600;">Log</span><span class="muted">· streaming · phase copy</span><span style="flex:1;"></span><span class="label-sm">Wrap</span><span class="label-sm">Auto-scroll ✓</span><span class="label-sm">Save…</span></div><div class="log-body"><div class="ln"><span class="ts">[12:04:01]</span> <span class="ok">validate</span> ISO checksum OK · 5.42 GB</div><div class="ln"><span class="ts">[12:04:03]</span> <span class="ok">validate</span> target Disk 3 confirmed USB · 29.8 GB · removable</div><div class="ln"><span class="ts">[12:04:05]</span> <span class="ac">mount</span> attaching ISO: Win11_24H2_English_x64.iso</div><div class="ln"><span class="ts">[12:04:13]</span> <span class="ok">mount</span> mounted at G:\ (read-only)</div><div class="ln"><span class="ts">[12:04:14]</span> <span class="ac">wipe</span> diskpart: clean Disk 3</div><div class="ln"><span class="ts">[12:04:18]</span> <span class="ac">wipe</span> diskpart: convert gpt</div><div class="ln"><span class="ts">[12:04:21]</span> <span class="ac">wipe</span> create partition primary size=29760</div><div class="ln"><span class="ts">[12:04:32]</span> <span class="ac">wipe</span> format fs=fat32 quick label=WIN_USB</div><div class="ln"><span class="ts">[12:04:37]</span> <span class="ok">wipe</span> G:\ ready · 29.79 GB free</div><div class="ln"><span class="ts">[12:04:39]</span> <span class="ac">copy</span> robocopy /MIR /R:1 /W:1 H:\ G:\</div><div class="ln"><span class="ts">[12:04:44]</span> <span class="fg">copy</span> autorun.inf · boot.wim · bootmgr · bootmgr.efi</div><div class="ln"><span class="ts">[12:05:11]</span> <span class="fg">copy</span> efi\* · 21.4 MB</div><div class="ln"><span class="ts">[12:06:48]</span> <span class="fg">copy</span> sources\install.wim · split pending</div><div class="ln"><span class="ts">[12:08:17]</span> <span class="wn">copy</span> long path 248 chars, robocopy /256 fallback</div><div class="ln"><span class="ts">[12:08:33]</span>     <span class="ac">→</span> 3.52 GB / 5.41 GB · 65% · 12.8 MB/s</div></div></div>
+            <section class="side-card right-card focus"><div class="card-inner"><div class="label-sm">Pipeline · 6 phases</div><div class="phase-list"><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Validate ✓</div><div class="detail">0:02 · ISO and USB OK</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Mount ISO ✓</div><div class="detail">0:08 · mounted as G:\</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Wipe & partition ✓</div><div class="detail">0:24 · 29.79 GB free</div></div></div><div class="phase-row active"><svg><use href="#i-spinner"/></svg><div><div class="title">Copy files · 65%</div><div class="detail">3.52 / 5.41 GB · 4:32 elapsed</div><div class="progress" style="margin-top:6px;"><i style="width:65%"></i></div></div></div><div class="phase-row pending"><svg><use href="#i-scissors"/></svg><div><div class="title">Split install.wim</div><div class="detail">pending · about 1 min</div></div></div><div class="phase-row pending"><svg><use href="#i-verify"/></svg><div><div class="title">Verify sample</div><div class="detail">pending · about 30 sec</div></div></div></div><div class="phase-summary"><div class="label-sm">Current operation</div><div class="metric"><span>Rate</span><strong>12.8 MB/s</strong></div><div class="metric"><span>ETA</span><strong>3:50</strong></div></div></div></section>
+          </div>
+          <div class="actionbar"><div class="action-row"><div class="status-pill busy"><svg><use href="#i-spinner"/></svg><span>Copying</span></div><div class="progress"><i style="width:65%"></i></div><div class="actions"><button class="btn" disabled><svg class="ic"><use href="#i-refresh"/></svg>Refresh</button><button class="btn"><svg class="ic"><use href="#i-x"/></svg>Cancel</button><button class="btn primary" disabled><svg class="ic"><use href="#i-check"/></svg>Start build</button></div></div><div class="caption-row"><span class="shield"><svg><use href="#i-shield"/></svg> Elevated worker</span><span class="dotsep">·</span><span class="op">Copying files — 3.52 GB / 5.41 GB · 12.8 MB/s · about 3:50 left</span><span class="version">IsoToUsb · MIT · runs as administrator</span></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-wrap"><div class="frame-label"><span class="pill">Done</span> Success · pipeline remains focal</div>
+      <div class="frame light stack state-done">
+        <div class="winchrome"><div class="title"><svg class="ic"><use href="#i-app"/></svg> IsoToUsb · Workshop</div><div class="spacer"></div><div class="caps"><div class="cap"><svg><use href="#i-min"/></svg></div><div class="cap"><svg><use href="#i-max"/></svg></div><div class="cap close"><svg><use href="#i-cls"/></svg></div></div></div>
+        <div class="content">
+          <div class="workspace">
+            <section class="side-card left-card inactive">
+      <div class="card-inner">
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Source ISO</div>
+          <div class="drop-card">
+            <svg class="big"><use href="#i-iso"/></svg>
+            <div class="drop-title">Win11_24H2_English_x64.iso</div>
+            <div class="drop-sub">5.42 GB · unmounted after build</div>
+            <button class="mini-btn">Browse...</button>
+          </div>
+        </div>
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Target USB</div>
+          <div class="combo"><div class="left"><svg class="ic"><use href="#i-usb"/></svg><span class="label">Disk 3 (G:) - SanDisk Ultra (29.8 GB)</span></div><svg class="chev"><use href="#i-chev-down"/></svg></div>
+        </div>
+        <div>
+          <div class="label-sm">Defaults</div>
+          <div class="defaults">
+            <span>Boot mode</span><span>UEFI</span>
+            <span>Partition scheme</span><span>GPT</span>
+            <span>File system</span><span>FAT32</span>
+            <span>Auto-split install.wim</span><span>On</span>
+          </div>
+        </div>
+        <div style="margin-top:auto;" class="infobar success"><svg class="ic"><use href="#i-check-circle"/></svg><div class="body"><strong>Build complete.</strong><div class="det">SanDisk Ultra is ready to boot on UEFI PCs.</div></div></div>
+      </div></section>
+            <div class="log-panel"><div class="log-head"><svg class="ic"><use href="#i-check-circle"/></svg><span style="font-weight:600;">Log</span><span class="muted">· 312 lines · complete</span><span style="flex:1;"></span><span class="label-sm">Wrap</span><span class="label-sm">Auto-scroll ✓</span><span class="label-sm">Save…</span></div><div class="log-body"><div class="ln"><span class="ts">[12:09:14]</span> <span class="ok">copy</span> done · 5.41 GB · 3,372 files · 4:35</div><div class="ln"><span class="ts">[12:09:15]</span> <span class="ac">split</span> sources\install.wim is 4.9 GB · splitting to FAT32-safe parts</div><div class="ln"><span class="ts">[12:09:17]</span> <span class="ac">split</span> dism /Split-Image /ImageFile:H:\sources\install.wim …</div><div class="ln"><span class="ts">[12:10:08]</span> <span class="fg">split</span> wrote G:\sources\install.swm · 4.00 GB</div><div class="ln"><span class="ts">[12:10:34]</span> <span class="fg">split</span> wrote G:\sources\install2.swm · 1.05 GB</div><div class="ln"><span class="ts">[12:10:38]</span> <span class="ok">split</span> done · 2 parts · 1:23</div><div class="ln"><span class="ts">[12:10:40]</span> <span class="ac">verify</span> sampling 20 files (random + boot critical)</div><div class="ln"><span class="ts">[12:10:42]</span> <span class="fg">verify</span> [01/20] bootmgr.efi · SHA-256 ✓</div><div class="ln"><span class="ts">[12:10:51]</span> <span class="fg">verify</span> [10/20] sources\setup.exe · SHA-256 ✓</div><div class="ln"><span class="ts">[12:11:01]</span> <span class="fg">verify</span> [19/20] efi\microsoft\boot\bcd · SHA-256 ✓</div><div class="ln"><span class="ts">[12:11:05]</span> <span class="ok">verify</span> complete · 20 / 20 files matched</div><div class="ln"><span class="ts">[12:11:07]</span> <span class="ok">done</span> bootable USB ready: Disk 3 (G:) - SanDisk Ultra</div></div></div>
+            <section class="side-card right-card focus"><div class="card-inner"><div class="label-sm">Pipeline · 6 phases</div><div class="phase-list"><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Validate ✓</div><div class="detail">0:02 · checksums OK</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Mount ISO ✓</div><div class="detail">0:08 · unmounted</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Wipe & partition ✓</div><div class="detail">0:24 · GPT/FAT32</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Copy files ✓</div><div class="detail">4:35 · 3,372 files</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Split install.wim ✓</div><div class="detail">1:23 · install.swm + install2.swm</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Verify sample ✓</div><div class="detail">0:34 · 20 / 20 SHA checks</div></div></div></div><div class="phase-summary"><div class="label-sm">Result</div><div class="metric"><span>Total time</span><strong>7:06</strong></div><div class="metric"><span>Status</span><strong>Bootable USB ready</strong></div></div></div></section>
+          </div>
+          <div class="actionbar"><div class="action-row"><div class="status-pill done"><svg><use href="#i-check-circle"/></svg><span>Done</span></div><div class="progress success"><i style="width:100%"></i></div><div class="actions"><button class="btn"><svg class="ic"><use href="#i-refresh"/></svg>Refresh</button><button class="btn" disabled><svg class="ic"><use href="#i-x"/></svg>Cancel</button><button class="btn primary"><svg class="ic"><use href="#i-check"/></svg>Start build</button></div></div><div class="caption-row"><span class="shield"><svg><use href="#i-shield"/></svg> Elevated worker</span><span class="dotsep">·</span><span class="op">Completed successfully — bootable USB is ready.</span><span class="version">IsoToUsb · MIT · runs as administrator</span></div></div>
+        </div>
+      </div>
+    </div></div>
+  <div class="row-label"><span class="swatch" style="background:#202020"></span> Dark theme · Setup / Building / Done</div>
+  <div class="row">
+    <div class="frame-wrap"><div class="frame-label"><span class="pill">Setup</span> Idle · left card raised</div>
+      <div class="frame dark stack state-setup">
+        <div class="winchrome"><div class="title"><svg class="ic"><use href="#i-app"/></svg> IsoToUsb · Workshop</div><div class="spacer"></div><div class="caps"><div class="cap"><svg><use href="#i-min"/></svg></div><div class="cap"><svg><use href="#i-max"/></svg></div><div class="cap close"><svg><use href="#i-cls"/></svg></div></div></div>
+        <div class="content">
+          <div class="workspace">
+            <section class="side-card left-card focus">
+      <div class="card-inner">
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Source ISO</div>
+          <div class="drop-card">
+            <svg class="big"><use href="#i-iso"/></svg>
+            <div class="drop-title">Win11_24H2_English_x64.iso</div>
+            <div class="drop-sub">5.42 GB · drop another to replace</div>
+            <button class="mini-btn">Browse...</button>
+          </div>
+        </div>
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Target USB</div>
+          <div class="combo"><div class="left"><svg class="ic"><use href="#i-usb"/></svg><span class="label">Disk 3 (G:) - SanDisk Ultra (29.8 GB)</span></div><svg class="chev"><use href="#i-chev-down"/></svg></div>
+        </div>
+        <div>
+          <div class="label-sm">Defaults</div>
+          <div class="defaults">
+            <span>Boot mode</span><span>UEFI</span>
+            <span>Partition scheme</span><span>GPT</span>
+            <span>File system</span><span>FAT32</span>
+            <span>Auto-split install.wim</span><span>On</span>
+          </div>
+        </div>
+        <div style="margin-top:auto;" class="infobar info"><svg class="ic"><use href="#i-info"/></svg><div class="body">Strong defaults: UEFI · GPT · FAT32. Target USB will be wiped.</div></div>
+      </div></section>
+            <div class="log-panel"><div class="log-head"><svg class="ic"><use href="#i-term"/></svg><span style="font-weight:600;">Log</span><span class="muted">· awaiting start</span><span style="flex:1;"></span><span class="label-sm">Wrap</span><span class="label-sm">Auto-scroll ✓</span><span class="label-sm">Save…</span></div><div class="log-body"><div class="ln"><span class="ts">[--:--:--]</span> <span class="fg">ready.</span> waiting for Start.</div><div class="ln"><span class="ts">[--:--:--]</span> source: Win11_24H2_English_x64.iso (5.42 GB)</div><div class="ln"><span class="ts">[--:--:--]</span> target: \\.\PhysicalDrive3 (SanDisk Ultra, 29.8 GB)</div><div class="ln"><span class="ts">[--:--:--]</span> plan: validate → mount → wipe → copy → split → verify</div><div class="ln"><span class="ts">[--:--:--]</span> defaults: UEFI · GPT · FAT32 · auto-split enabled</div></div></div>
+            <section class="side-card right-card inactive"><div class="card-inner"><div class="label-sm">Pipeline · 6 phases</div><div class="phase-list"><div class="phase-row pending"><svg><use href="#i-validate"/></svg><div><div class="title">Validate</div><div class="detail">checksums · disk & size sanity</div></div></div><div class="phase-row pending"><svg><use href="#i-mount"/></svg><div><div class="title">Mount ISO</div><div class="detail">attach as virtual disk</div></div></div><div class="phase-row pending"><svg><use href="#i-wipe"/></svg><div><div class="title">Wipe & partition</div><div class="detail">GPT · FAT32 · WIN_USB</div></div></div><div class="phase-row pending"><svg><use href="#i-copy"/></svg><div><div class="title">Copy files</div><div class="detail">~5.42 GB · longest phase</div></div></div><div class="phase-row pending"><svg><use href="#i-scissors"/></svg><div><div class="title">Split install.wim</div><div class="detail">2 parts · under 4 GB each</div></div></div><div class="phase-row pending"><svg><use href="#i-verify"/></svg><div><div class="title">Verify sample</div><div class="detail">20 random files · SHA</div></div></div></div><div class="phase-summary"><div class="label-sm">Estimated</div><div class="metric"><span>Total</span><strong>~7 min</strong></div><div class="metric"><span>Data to write</span><strong>5.42 GB</strong></div></div></div></section>
+          </div>
+          <div class="actionbar"><div class="action-row"><div class="status-pill ready"><svg><use href="#i-term"/></svg><span>Ready</span></div><div class="progress"><i style="width:0%"></i></div><div class="actions"><button class="btn"><svg class="ic"><use href="#i-refresh"/></svg>Refresh</button><button class="btn" disabled><svg class="ic"><use href="#i-x"/></svg>Cancel</button><button class="btn primary"><svg class="ic"><use href="#i-check"/></svg>Start build</button></div></div><div class="caption-row"><span class="shield"><svg><use href="#i-shield"/></svg> Elevated worker</span><span class="dotsep">·</span><span class="op">Choose an ISO and target USB, then start the build.</span><span class="version">IsoToUsb · MIT · runs as administrator</span></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-wrap"><div class="frame-label"><span class="pill">Building</span> Running · right card raised</div>
+      <div class="frame dark stack state-building">
+        <div class="winchrome"><div class="title"><svg class="ic"><use href="#i-app"/></svg> IsoToUsb · Workshop</div><div class="spacer"></div><div class="caps"><div class="cap"><svg><use href="#i-min"/></svg></div><div class="cap"><svg><use href="#i-max"/></svg></div><div class="cap close"><svg><use href="#i-cls"/></svg></div></div></div>
+        <div class="content">
+          <div class="workspace">
+            <section class="side-card left-card inactive">
+      <div class="card-inner">
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Source ISO</div>
+          <div class="drop-card locked">
+            <svg class="big"><use href="#i-iso"/></svg>
+            <div class="drop-title">Win11_24H2_English_x64.iso</div>
+            <div class="drop-sub">5.42 GB · mounted read-only as G:\</div>
+            <button class="mini-btn" disabled>Browse...</button>
+          </div>
+        </div>
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Target USB</div>
+          <div class="combo locked"><div class="left"><svg class="ic"><use href="#i-usb"/></svg><span class="label">Disk 3 (G:) - SanDisk Ultra (29.8 GB)</span></div></div>
+        </div>
+        <div>
+          <div class="label-sm">Defaults</div>
+          <div class="defaults">
+            <span>Boot mode</span><span>UEFI</span>
+            <span>Partition scheme</span><span>GPT</span>
+            <span>File system</span><span>FAT32</span>
+            <span>Auto-split install.wim</span><span>On</span>
+          </div>
+        </div>
+        <div style="margin-top:auto;" class="infobar info"><svg class="ic"><use href="#i-info"/></svg><div class="body">Inputs are locked while files are being copied. Cancel to make changes.</div></div>
+      </div></section>
+            <div class="log-panel"><div class="log-head"><svg class="ic"><use href="#i-spinner"/></svg><span style="font-weight:600;">Log</span><span class="muted">· streaming · phase copy</span><span style="flex:1;"></span><span class="label-sm">Wrap</span><span class="label-sm">Auto-scroll ✓</span><span class="label-sm">Save…</span></div><div class="log-body"><div class="ln"><span class="ts">[12:04:01]</span> <span class="ok">validate</span> ISO checksum OK · 5.42 GB</div><div class="ln"><span class="ts">[12:04:03]</span> <span class="ok">validate</span> target Disk 3 confirmed USB · 29.8 GB · removable</div><div class="ln"><span class="ts">[12:04:05]</span> <span class="ac">mount</span> attaching ISO: Win11_24H2_English_x64.iso</div><div class="ln"><span class="ts">[12:04:13]</span> <span class="ok">mount</span> mounted at G:\ (read-only)</div><div class="ln"><span class="ts">[12:04:14]</span> <span class="ac">wipe</span> diskpart: clean Disk 3</div><div class="ln"><span class="ts">[12:04:18]</span> <span class="ac">wipe</span> diskpart: convert gpt</div><div class="ln"><span class="ts">[12:04:21]</span> <span class="ac">wipe</span> create partition primary size=29760</div><div class="ln"><span class="ts">[12:04:32]</span> <span class="ac">wipe</span> format fs=fat32 quick label=WIN_USB</div><div class="ln"><span class="ts">[12:04:37]</span> <span class="ok">wipe</span> G:\ ready · 29.79 GB free</div><div class="ln"><span class="ts">[12:04:39]</span> <span class="ac">copy</span> robocopy /MIR /R:1 /W:1 H:\ G:\</div><div class="ln"><span class="ts">[12:04:44]</span> <span class="fg">copy</span> autorun.inf · boot.wim · bootmgr · bootmgr.efi</div><div class="ln"><span class="ts">[12:05:11]</span> <span class="fg">copy</span> efi\* · 21.4 MB</div><div class="ln"><span class="ts">[12:06:48]</span> <span class="fg">copy</span> sources\install.wim · split pending</div><div class="ln"><span class="ts">[12:08:17]</span> <span class="wn">copy</span> long path 248 chars, robocopy /256 fallback</div><div class="ln"><span class="ts">[12:08:33]</span>     <span class="ac">→</span> 3.52 GB / 5.41 GB · 65% · 12.8 MB/s</div></div></div>
+            <section class="side-card right-card focus"><div class="card-inner"><div class="label-sm">Pipeline · 6 phases</div><div class="phase-list"><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Validate ✓</div><div class="detail">0:02 · ISO and USB OK</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Mount ISO ✓</div><div class="detail">0:08 · mounted as G:\</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Wipe & partition ✓</div><div class="detail">0:24 · 29.79 GB free</div></div></div><div class="phase-row active"><svg><use href="#i-spinner"/></svg><div><div class="title">Copy files · 65%</div><div class="detail">3.52 / 5.41 GB · 4:32 elapsed</div><div class="progress" style="margin-top:6px;"><i style="width:65%"></i></div></div></div><div class="phase-row pending"><svg><use href="#i-scissors"/></svg><div><div class="title">Split install.wim</div><div class="detail">pending · about 1 min</div></div></div><div class="phase-row pending"><svg><use href="#i-verify"/></svg><div><div class="title">Verify sample</div><div class="detail">pending · about 30 sec</div></div></div></div><div class="phase-summary"><div class="label-sm">Current operation</div><div class="metric"><span>Rate</span><strong>12.8 MB/s</strong></div><div class="metric"><span>ETA</span><strong>3:50</strong></div></div></div></section>
+          </div>
+          <div class="actionbar"><div class="action-row"><div class="status-pill busy"><svg><use href="#i-spinner"/></svg><span>Copying</span></div><div class="progress"><i style="width:65%"></i></div><div class="actions"><button class="btn" disabled><svg class="ic"><use href="#i-refresh"/></svg>Refresh</button><button class="btn"><svg class="ic"><use href="#i-x"/></svg>Cancel</button><button class="btn primary" disabled><svg class="ic"><use href="#i-check"/></svg>Start build</button></div></div><div class="caption-row"><span class="shield"><svg><use href="#i-shield"/></svg> Elevated worker</span><span class="dotsep">·</span><span class="op">Copying files — 3.52 GB / 5.41 GB · 12.8 MB/s · about 3:50 left</span><span class="version">IsoToUsb · MIT · runs as administrator</span></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-wrap"><div class="frame-label"><span class="pill">Done</span> Success · pipeline remains focal</div>
+      <div class="frame dark stack state-done">
+        <div class="winchrome"><div class="title"><svg class="ic"><use href="#i-app"/></svg> IsoToUsb · Workshop</div><div class="spacer"></div><div class="caps"><div class="cap"><svg><use href="#i-min"/></svg></div><div class="cap"><svg><use href="#i-max"/></svg></div><div class="cap close"><svg><use href="#i-cls"/></svg></div></div></div>
+        <div class="content">
+          <div class="workspace">
+            <section class="side-card left-card inactive">
+      <div class="card-inner">
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Source ISO</div>
+          <div class="drop-card">
+            <svg class="big"><use href="#i-iso"/></svg>
+            <div class="drop-title">Win11_24H2_English_x64.iso</div>
+            <div class="drop-sub">5.42 GB · unmounted after build</div>
+            <button class="mini-btn">Browse...</button>
+          </div>
+        </div>
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Target USB</div>
+          <div class="combo"><div class="left"><svg class="ic"><use href="#i-usb"/></svg><span class="label">Disk 3 (G:) - SanDisk Ultra (29.8 GB)</span></div><svg class="chev"><use href="#i-chev-down"/></svg></div>
+        </div>
+        <div>
+          <div class="label-sm">Defaults</div>
+          <div class="defaults">
+            <span>Boot mode</span><span>UEFI</span>
+            <span>Partition scheme</span><span>GPT</span>
+            <span>File system</span><span>FAT32</span>
+            <span>Auto-split install.wim</span><span>On</span>
+          </div>
+        </div>
+        <div style="margin-top:auto;" class="infobar success"><svg class="ic"><use href="#i-check-circle"/></svg><div class="body"><strong>Build complete.</strong><div class="det">SanDisk Ultra is ready to boot on UEFI PCs.</div></div></div>
+      </div></section>
+            <div class="log-panel"><div class="log-head"><svg class="ic"><use href="#i-check-circle"/></svg><span style="font-weight:600;">Log</span><span class="muted">· 312 lines · complete</span><span style="flex:1;"></span><span class="label-sm">Wrap</span><span class="label-sm">Auto-scroll ✓</span><span class="label-sm">Save…</span></div><div class="log-body"><div class="ln"><span class="ts">[12:09:14]</span> <span class="ok">copy</span> done · 5.41 GB · 3,372 files · 4:35</div><div class="ln"><span class="ts">[12:09:15]</span> <span class="ac">split</span> sources\install.wim is 4.9 GB · splitting to FAT32-safe parts</div><div class="ln"><span class="ts">[12:09:17]</span> <span class="ac">split</span> dism /Split-Image /ImageFile:H:\sources\install.wim …</div><div class="ln"><span class="ts">[12:10:08]</span> <span class="fg">split</span> wrote G:\sources\install.swm · 4.00 GB</div><div class="ln"><span class="ts">[12:10:34]</span> <span class="fg">split</span> wrote G:\sources\install2.swm · 1.05 GB</div><div class="ln"><span class="ts">[12:10:38]</span> <span class="ok">split</span> done · 2 parts · 1:23</div><div class="ln"><span class="ts">[12:10:40]</span> <span class="ac">verify</span> sampling 20 files (random + boot critical)</div><div class="ln"><span class="ts">[12:10:42]</span> <span class="fg">verify</span> [01/20] bootmgr.efi · SHA-256 ✓</div><div class="ln"><span class="ts">[12:10:51]</span> <span class="fg">verify</span> [10/20] sources\setup.exe · SHA-256 ✓</div><div class="ln"><span class="ts">[12:11:01]</span> <span class="fg">verify</span> [19/20] efi\microsoft\boot\bcd · SHA-256 ✓</div><div class="ln"><span class="ts">[12:11:05]</span> <span class="ok">verify</span> complete · 20 / 20 files matched</div><div class="ln"><span class="ts">[12:11:07]</span> <span class="ok">done</span> bootable USB ready: Disk 3 (G:) - SanDisk Ultra</div></div></div>
+            <section class="side-card right-card focus"><div class="card-inner"><div class="label-sm">Pipeline · 6 phases</div><div class="phase-list"><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Validate ✓</div><div class="detail">0:02 · checksums OK</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Mount ISO ✓</div><div class="detail">0:08 · unmounted</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Wipe & partition ✓</div><div class="detail">0:24 · GPT/FAT32</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Copy files ✓</div><div class="detail">4:35 · 3,372 files</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Split install.wim ✓</div><div class="detail">1:23 · install.swm + install2.swm</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Verify sample ✓</div><div class="detail">0:34 · 20 / 20 SHA checks</div></div></div></div><div class="phase-summary"><div class="label-sm">Result</div><div class="metric"><span>Total time</span><strong>7:06</strong></div><div class="metric"><span>Status</span><strong>Bootable USB ready</strong></div></div></div></section>
+          </div>
+          <div class="actionbar"><div class="action-row"><div class="status-pill done"><svg><use href="#i-check-circle"/></svg><span>Done</span></div><div class="progress success"><i style="width:100%"></i></div><div class="actions"><button class="btn"><svg class="ic"><use href="#i-refresh"/></svg>Refresh</button><button class="btn" disabled><svg class="ic"><use href="#i-x"/></svg>Cancel</button><button class="btn primary"><svg class="ic"><use href="#i-check"/></svg>Start build</button></div></div><div class="caption-row"><span class="shield"><svg><use href="#i-shield"/></svg> Elevated worker</span><span class="dotsep">·</span><span class="op">Completed successfully — bootable USB is ready.</span><span class="version">IsoToUsb · MIT · runs as administrator</span></div></div>
+        </div>
+      </div>
+    </div></div>
+</section>
+<section id="concept-d" class="concept">
+  <div class="concept-head">
+    <div><span class="tag">Concept D</span><h2>Accent-edge lift</h2><p class="pitch">Cards keep equal physical elevation, but the focal side receives an accent edge stripe, border tint and soft glow. It is the most conservative way to communicate state-driven focus.</p></div>
+    <div><h3>Transition cues</h3><ul><li>A 4 px accent stripe appears on the outside edge of the active card.</li><li>Border tint and glow swap from left in Setup to right in Building/Done.</li><li>No opacity, scale, or overlap changes; all content remains stable.</li></ul></div>
+    <div><h3>Pros / cons</h3><ul><li>Lowest implementation risk: BorderThickness/BorderBrush plus ThemeShadow or layered Border.</li><li>Very accessible and readable; avoids dimming important safety information.</li><li>Less literal than true elevation, so it may need a restrained shadow boost to satisfy the &#39;higher&#39; brief.</li></ul></div>
+  </div>
+  <div class="row-label"><span class="swatch" style="background:#FFFFFF"></span> Light theme · Setup / Building / Done</div>
+  <div class="row">
+    <div class="frame-wrap"><div class="frame-label"><span class="pill">Setup</span> Idle · left card raised</div>
+      <div class="frame light edge state-setup">
+        <div class="winchrome"><div class="title"><svg class="ic"><use href="#i-app"/></svg> IsoToUsb · Workshop</div><div class="spacer"></div><div class="caps"><div class="cap"><svg><use href="#i-min"/></svg></div><div class="cap"><svg><use href="#i-max"/></svg></div><div class="cap close"><svg><use href="#i-cls"/></svg></div></div></div>
+        <div class="content">
+          <div class="workspace">
+            <section class="side-card left-card focus">
+      <div class="card-inner">
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Source ISO</div>
+          <div class="drop-card">
+            <svg class="big"><use href="#i-iso"/></svg>
+            <div class="drop-title">Win11_24H2_English_x64.iso</div>
+            <div class="drop-sub">5.42 GB · drop another to replace</div>
+            <button class="mini-btn">Browse...</button>
+          </div>
+        </div>
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Target USB</div>
+          <div class="combo"><div class="left"><svg class="ic"><use href="#i-usb"/></svg><span class="label">Disk 3 (G:) - SanDisk Ultra (29.8 GB)</span></div><svg class="chev"><use href="#i-chev-down"/></svg></div>
+        </div>
+        <div>
+          <div class="label-sm">Defaults</div>
+          <div class="defaults">
+            <span>Boot mode</span><span>UEFI</span>
+            <span>Partition scheme</span><span>GPT</span>
+            <span>File system</span><span>FAT32</span>
+            <span>Auto-split install.wim</span><span>On</span>
+          </div>
+        </div>
+        <div style="margin-top:auto;" class="infobar info"><svg class="ic"><use href="#i-info"/></svg><div class="body">Strong defaults: UEFI · GPT · FAT32. Target USB will be wiped.</div></div>
+      </div></section>
+            <div class="log-panel"><div class="log-head"><svg class="ic"><use href="#i-term"/></svg><span style="font-weight:600;">Log</span><span class="muted">· awaiting start</span><span style="flex:1;"></span><span class="label-sm">Wrap</span><span class="label-sm">Auto-scroll ✓</span><span class="label-sm">Save…</span></div><div class="log-body"><div class="ln"><span class="ts">[--:--:--]</span> <span class="fg">ready.</span> waiting for Start.</div><div class="ln"><span class="ts">[--:--:--]</span> source: Win11_24H2_English_x64.iso (5.42 GB)</div><div class="ln"><span class="ts">[--:--:--]</span> target: \\.\PhysicalDrive3 (SanDisk Ultra, 29.8 GB)</div><div class="ln"><span class="ts">[--:--:--]</span> plan: validate → mount → wipe → copy → split → verify</div><div class="ln"><span class="ts">[--:--:--]</span> defaults: UEFI · GPT · FAT32 · auto-split enabled</div></div></div>
+            <section class="side-card right-card inactive"><div class="card-inner"><div class="label-sm">Pipeline · 6 phases</div><div class="phase-list"><div class="phase-row pending"><svg><use href="#i-validate"/></svg><div><div class="title">Validate</div><div class="detail">checksums · disk & size sanity</div></div></div><div class="phase-row pending"><svg><use href="#i-mount"/></svg><div><div class="title">Mount ISO</div><div class="detail">attach as virtual disk</div></div></div><div class="phase-row pending"><svg><use href="#i-wipe"/></svg><div><div class="title">Wipe & partition</div><div class="detail">GPT · FAT32 · WIN_USB</div></div></div><div class="phase-row pending"><svg><use href="#i-copy"/></svg><div><div class="title">Copy files</div><div class="detail">~5.42 GB · longest phase</div></div></div><div class="phase-row pending"><svg><use href="#i-scissors"/></svg><div><div class="title">Split install.wim</div><div class="detail">2 parts · under 4 GB each</div></div></div><div class="phase-row pending"><svg><use href="#i-verify"/></svg><div><div class="title">Verify sample</div><div class="detail">20 random files · SHA</div></div></div></div><div class="phase-summary"><div class="label-sm">Estimated</div><div class="metric"><span>Total</span><strong>~7 min</strong></div><div class="metric"><span>Data to write</span><strong>5.42 GB</strong></div></div></div></section>
+          </div>
+          <div class="actionbar"><div class="action-row"><div class="status-pill ready"><svg><use href="#i-term"/></svg><span>Ready</span></div><div class="progress"><i style="width:0%"></i></div><div class="actions"><button class="btn"><svg class="ic"><use href="#i-refresh"/></svg>Refresh</button><button class="btn" disabled><svg class="ic"><use href="#i-x"/></svg>Cancel</button><button class="btn primary"><svg class="ic"><use href="#i-check"/></svg>Start build</button></div></div><div class="caption-row"><span class="shield"><svg><use href="#i-shield"/></svg> Elevated worker</span><span class="dotsep">·</span><span class="op">Choose an ISO and target USB, then start the build.</span><span class="version">IsoToUsb · MIT · runs as administrator</span></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-wrap"><div class="frame-label"><span class="pill">Building</span> Running · right card raised</div>
+      <div class="frame light edge state-building">
+        <div class="winchrome"><div class="title"><svg class="ic"><use href="#i-app"/></svg> IsoToUsb · Workshop</div><div class="spacer"></div><div class="caps"><div class="cap"><svg><use href="#i-min"/></svg></div><div class="cap"><svg><use href="#i-max"/></svg></div><div class="cap close"><svg><use href="#i-cls"/></svg></div></div></div>
+        <div class="content">
+          <div class="workspace">
+            <section class="side-card left-card inactive">
+      <div class="card-inner">
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Source ISO</div>
+          <div class="drop-card locked">
+            <svg class="big"><use href="#i-iso"/></svg>
+            <div class="drop-title">Win11_24H2_English_x64.iso</div>
+            <div class="drop-sub">5.42 GB · mounted read-only as G:\</div>
+            <button class="mini-btn" disabled>Browse...</button>
+          </div>
+        </div>
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Target USB</div>
+          <div class="combo locked"><div class="left"><svg class="ic"><use href="#i-usb"/></svg><span class="label">Disk 3 (G:) - SanDisk Ultra (29.8 GB)</span></div></div>
+        </div>
+        <div>
+          <div class="label-sm">Defaults</div>
+          <div class="defaults">
+            <span>Boot mode</span><span>UEFI</span>
+            <span>Partition scheme</span><span>GPT</span>
+            <span>File system</span><span>FAT32</span>
+            <span>Auto-split install.wim</span><span>On</span>
+          </div>
+        </div>
+        <div style="margin-top:auto;" class="infobar info"><svg class="ic"><use href="#i-info"/></svg><div class="body">Inputs are locked while files are being copied. Cancel to make changes.</div></div>
+      </div></section>
+            <div class="log-panel"><div class="log-head"><svg class="ic"><use href="#i-spinner"/></svg><span style="font-weight:600;">Log</span><span class="muted">· streaming · phase copy</span><span style="flex:1;"></span><span class="label-sm">Wrap</span><span class="label-sm">Auto-scroll ✓</span><span class="label-sm">Save…</span></div><div class="log-body"><div class="ln"><span class="ts">[12:04:01]</span> <span class="ok">validate</span> ISO checksum OK · 5.42 GB</div><div class="ln"><span class="ts">[12:04:03]</span> <span class="ok">validate</span> target Disk 3 confirmed USB · 29.8 GB · removable</div><div class="ln"><span class="ts">[12:04:05]</span> <span class="ac">mount</span> attaching ISO: Win11_24H2_English_x64.iso</div><div class="ln"><span class="ts">[12:04:13]</span> <span class="ok">mount</span> mounted at G:\ (read-only)</div><div class="ln"><span class="ts">[12:04:14]</span> <span class="ac">wipe</span> diskpart: clean Disk 3</div><div class="ln"><span class="ts">[12:04:18]</span> <span class="ac">wipe</span> diskpart: convert gpt</div><div class="ln"><span class="ts">[12:04:21]</span> <span class="ac">wipe</span> create partition primary size=29760</div><div class="ln"><span class="ts">[12:04:32]</span> <span class="ac">wipe</span> format fs=fat32 quick label=WIN_USB</div><div class="ln"><span class="ts">[12:04:37]</span> <span class="ok">wipe</span> G:\ ready · 29.79 GB free</div><div class="ln"><span class="ts">[12:04:39]</span> <span class="ac">copy</span> robocopy /MIR /R:1 /W:1 H:\ G:\</div><div class="ln"><span class="ts">[12:04:44]</span> <span class="fg">copy</span> autorun.inf · boot.wim · bootmgr · bootmgr.efi</div><div class="ln"><span class="ts">[12:05:11]</span> <span class="fg">copy</span> efi\* · 21.4 MB</div><div class="ln"><span class="ts">[12:06:48]</span> <span class="fg">copy</span> sources\install.wim · split pending</div><div class="ln"><span class="ts">[12:08:17]</span> <span class="wn">copy</span> long path 248 chars, robocopy /256 fallback</div><div class="ln"><span class="ts">[12:08:33]</span>     <span class="ac">→</span> 3.52 GB / 5.41 GB · 65% · 12.8 MB/s</div></div></div>
+            <section class="side-card right-card focus"><div class="card-inner"><div class="label-sm">Pipeline · 6 phases</div><div class="phase-list"><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Validate ✓</div><div class="detail">0:02 · ISO and USB OK</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Mount ISO ✓</div><div class="detail">0:08 · mounted as G:\</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Wipe & partition ✓</div><div class="detail">0:24 · 29.79 GB free</div></div></div><div class="phase-row active"><svg><use href="#i-spinner"/></svg><div><div class="title">Copy files · 65%</div><div class="detail">3.52 / 5.41 GB · 4:32 elapsed</div><div class="progress" style="margin-top:6px;"><i style="width:65%"></i></div></div></div><div class="phase-row pending"><svg><use href="#i-scissors"/></svg><div><div class="title">Split install.wim</div><div class="detail">pending · about 1 min</div></div></div><div class="phase-row pending"><svg><use href="#i-verify"/></svg><div><div class="title">Verify sample</div><div class="detail">pending · about 30 sec</div></div></div></div><div class="phase-summary"><div class="label-sm">Current operation</div><div class="metric"><span>Rate</span><strong>12.8 MB/s</strong></div><div class="metric"><span>ETA</span><strong>3:50</strong></div></div></div></section>
+          </div>
+          <div class="actionbar"><div class="action-row"><div class="status-pill busy"><svg><use href="#i-spinner"/></svg><span>Copying</span></div><div class="progress"><i style="width:65%"></i></div><div class="actions"><button class="btn" disabled><svg class="ic"><use href="#i-refresh"/></svg>Refresh</button><button class="btn"><svg class="ic"><use href="#i-x"/></svg>Cancel</button><button class="btn primary" disabled><svg class="ic"><use href="#i-check"/></svg>Start build</button></div></div><div class="caption-row"><span class="shield"><svg><use href="#i-shield"/></svg> Elevated worker</span><span class="dotsep">·</span><span class="op">Copying files — 3.52 GB / 5.41 GB · 12.8 MB/s · about 3:50 left</span><span class="version">IsoToUsb · MIT · runs as administrator</span></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-wrap"><div class="frame-label"><span class="pill">Done</span> Success · pipeline remains focal</div>
+      <div class="frame light edge state-done">
+        <div class="winchrome"><div class="title"><svg class="ic"><use href="#i-app"/></svg> IsoToUsb · Workshop</div><div class="spacer"></div><div class="caps"><div class="cap"><svg><use href="#i-min"/></svg></div><div class="cap"><svg><use href="#i-max"/></svg></div><div class="cap close"><svg><use href="#i-cls"/></svg></div></div></div>
+        <div class="content">
+          <div class="workspace">
+            <section class="side-card left-card inactive">
+      <div class="card-inner">
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Source ISO</div>
+          <div class="drop-card">
+            <svg class="big"><use href="#i-iso"/></svg>
+            <div class="drop-title">Win11_24H2_English_x64.iso</div>
+            <div class="drop-sub">5.42 GB · unmounted after build</div>
+            <button class="mini-btn">Browse...</button>
+          </div>
+        </div>
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Target USB</div>
+          <div class="combo"><div class="left"><svg class="ic"><use href="#i-usb"/></svg><span class="label">Disk 3 (G:) - SanDisk Ultra (29.8 GB)</span></div><svg class="chev"><use href="#i-chev-down"/></svg></div>
+        </div>
+        <div>
+          <div class="label-sm">Defaults</div>
+          <div class="defaults">
+            <span>Boot mode</span><span>UEFI</span>
+            <span>Partition scheme</span><span>GPT</span>
+            <span>File system</span><span>FAT32</span>
+            <span>Auto-split install.wim</span><span>On</span>
+          </div>
+        </div>
+        <div style="margin-top:auto;" class="infobar success"><svg class="ic"><use href="#i-check-circle"/></svg><div class="body"><strong>Build complete.</strong><div class="det">SanDisk Ultra is ready to boot on UEFI PCs.</div></div></div>
+      </div></section>
+            <div class="log-panel"><div class="log-head"><svg class="ic"><use href="#i-check-circle"/></svg><span style="font-weight:600;">Log</span><span class="muted">· 312 lines · complete</span><span style="flex:1;"></span><span class="label-sm">Wrap</span><span class="label-sm">Auto-scroll ✓</span><span class="label-sm">Save…</span></div><div class="log-body"><div class="ln"><span class="ts">[12:09:14]</span> <span class="ok">copy</span> done · 5.41 GB · 3,372 files · 4:35</div><div class="ln"><span class="ts">[12:09:15]</span> <span class="ac">split</span> sources\install.wim is 4.9 GB · splitting to FAT32-safe parts</div><div class="ln"><span class="ts">[12:09:17]</span> <span class="ac">split</span> dism /Split-Image /ImageFile:H:\sources\install.wim …</div><div class="ln"><span class="ts">[12:10:08]</span> <span class="fg">split</span> wrote G:\sources\install.swm · 4.00 GB</div><div class="ln"><span class="ts">[12:10:34]</span> <span class="fg">split</span> wrote G:\sources\install2.swm · 1.05 GB</div><div class="ln"><span class="ts">[12:10:38]</span> <span class="ok">split</span> done · 2 parts · 1:23</div><div class="ln"><span class="ts">[12:10:40]</span> <span class="ac">verify</span> sampling 20 files (random + boot critical)</div><div class="ln"><span class="ts">[12:10:42]</span> <span class="fg">verify</span> [01/20] bootmgr.efi · SHA-256 ✓</div><div class="ln"><span class="ts">[12:10:51]</span> <span class="fg">verify</span> [10/20] sources\setup.exe · SHA-256 ✓</div><div class="ln"><span class="ts">[12:11:01]</span> <span class="fg">verify</span> [19/20] efi\microsoft\boot\bcd · SHA-256 ✓</div><div class="ln"><span class="ts">[12:11:05]</span> <span class="ok">verify</span> complete · 20 / 20 files matched</div><div class="ln"><span class="ts">[12:11:07]</span> <span class="ok">done</span> bootable USB ready: Disk 3 (G:) - SanDisk Ultra</div></div></div>
+            <section class="side-card right-card focus"><div class="card-inner"><div class="label-sm">Pipeline · 6 phases</div><div class="phase-list"><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Validate ✓</div><div class="detail">0:02 · checksums OK</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Mount ISO ✓</div><div class="detail">0:08 · unmounted</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Wipe & partition ✓</div><div class="detail">0:24 · GPT/FAT32</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Copy files ✓</div><div class="detail">4:35 · 3,372 files</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Split install.wim ✓</div><div class="detail">1:23 · install.swm + install2.swm</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Verify sample ✓</div><div class="detail">0:34 · 20 / 20 SHA checks</div></div></div></div><div class="phase-summary"><div class="label-sm">Result</div><div class="metric"><span>Total time</span><strong>7:06</strong></div><div class="metric"><span>Status</span><strong>Bootable USB ready</strong></div></div></div></section>
+          </div>
+          <div class="actionbar"><div class="action-row"><div class="status-pill done"><svg><use href="#i-check-circle"/></svg><span>Done</span></div><div class="progress success"><i style="width:100%"></i></div><div class="actions"><button class="btn"><svg class="ic"><use href="#i-refresh"/></svg>Refresh</button><button class="btn" disabled><svg class="ic"><use href="#i-x"/></svg>Cancel</button><button class="btn primary"><svg class="ic"><use href="#i-check"/></svg>Start build</button></div></div><div class="caption-row"><span class="shield"><svg><use href="#i-shield"/></svg> Elevated worker</span><span class="dotsep">·</span><span class="op">Completed successfully — bootable USB is ready.</span><span class="version">IsoToUsb · MIT · runs as administrator</span></div></div>
+        </div>
+      </div>
+    </div></div>
+  <div class="row-label"><span class="swatch" style="background:#202020"></span> Dark theme · Setup / Building / Done</div>
+  <div class="row">
+    <div class="frame-wrap"><div class="frame-label"><span class="pill">Setup</span> Idle · left card raised</div>
+      <div class="frame dark edge state-setup">
+        <div class="winchrome"><div class="title"><svg class="ic"><use href="#i-app"/></svg> IsoToUsb · Workshop</div><div class="spacer"></div><div class="caps"><div class="cap"><svg><use href="#i-min"/></svg></div><div class="cap"><svg><use href="#i-max"/></svg></div><div class="cap close"><svg><use href="#i-cls"/></svg></div></div></div>
+        <div class="content">
+          <div class="workspace">
+            <section class="side-card left-card focus">
+      <div class="card-inner">
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Source ISO</div>
+          <div class="drop-card">
+            <svg class="big"><use href="#i-iso"/></svg>
+            <div class="drop-title">Win11_24H2_English_x64.iso</div>
+            <div class="drop-sub">5.42 GB · drop another to replace</div>
+            <button class="mini-btn">Browse...</button>
+          </div>
+        </div>
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Target USB</div>
+          <div class="combo"><div class="left"><svg class="ic"><use href="#i-usb"/></svg><span class="label">Disk 3 (G:) - SanDisk Ultra (29.8 GB)</span></div><svg class="chev"><use href="#i-chev-down"/></svg></div>
+        </div>
+        <div>
+          <div class="label-sm">Defaults</div>
+          <div class="defaults">
+            <span>Boot mode</span><span>UEFI</span>
+            <span>Partition scheme</span><span>GPT</span>
+            <span>File system</span><span>FAT32</span>
+            <span>Auto-split install.wim</span><span>On</span>
+          </div>
+        </div>
+        <div style="margin-top:auto;" class="infobar info"><svg class="ic"><use href="#i-info"/></svg><div class="body">Strong defaults: UEFI · GPT · FAT32. Target USB will be wiped.</div></div>
+      </div></section>
+            <div class="log-panel"><div class="log-head"><svg class="ic"><use href="#i-term"/></svg><span style="font-weight:600;">Log</span><span class="muted">· awaiting start</span><span style="flex:1;"></span><span class="label-sm">Wrap</span><span class="label-sm">Auto-scroll ✓</span><span class="label-sm">Save…</span></div><div class="log-body"><div class="ln"><span class="ts">[--:--:--]</span> <span class="fg">ready.</span> waiting for Start.</div><div class="ln"><span class="ts">[--:--:--]</span> source: Win11_24H2_English_x64.iso (5.42 GB)</div><div class="ln"><span class="ts">[--:--:--]</span> target: \\.\PhysicalDrive3 (SanDisk Ultra, 29.8 GB)</div><div class="ln"><span class="ts">[--:--:--]</span> plan: validate → mount → wipe → copy → split → verify</div><div class="ln"><span class="ts">[--:--:--]</span> defaults: UEFI · GPT · FAT32 · auto-split enabled</div></div></div>
+            <section class="side-card right-card inactive"><div class="card-inner"><div class="label-sm">Pipeline · 6 phases</div><div class="phase-list"><div class="phase-row pending"><svg><use href="#i-validate"/></svg><div><div class="title">Validate</div><div class="detail">checksums · disk & size sanity</div></div></div><div class="phase-row pending"><svg><use href="#i-mount"/></svg><div><div class="title">Mount ISO</div><div class="detail">attach as virtual disk</div></div></div><div class="phase-row pending"><svg><use href="#i-wipe"/></svg><div><div class="title">Wipe & partition</div><div class="detail">GPT · FAT32 · WIN_USB</div></div></div><div class="phase-row pending"><svg><use href="#i-copy"/></svg><div><div class="title">Copy files</div><div class="detail">~5.42 GB · longest phase</div></div></div><div class="phase-row pending"><svg><use href="#i-scissors"/></svg><div><div class="title">Split install.wim</div><div class="detail">2 parts · under 4 GB each</div></div></div><div class="phase-row pending"><svg><use href="#i-verify"/></svg><div><div class="title">Verify sample</div><div class="detail">20 random files · SHA</div></div></div></div><div class="phase-summary"><div class="label-sm">Estimated</div><div class="metric"><span>Total</span><strong>~7 min</strong></div><div class="metric"><span>Data to write</span><strong>5.42 GB</strong></div></div></div></section>
+          </div>
+          <div class="actionbar"><div class="action-row"><div class="status-pill ready"><svg><use href="#i-term"/></svg><span>Ready</span></div><div class="progress"><i style="width:0%"></i></div><div class="actions"><button class="btn"><svg class="ic"><use href="#i-refresh"/></svg>Refresh</button><button class="btn" disabled><svg class="ic"><use href="#i-x"/></svg>Cancel</button><button class="btn primary"><svg class="ic"><use href="#i-check"/></svg>Start build</button></div></div><div class="caption-row"><span class="shield"><svg><use href="#i-shield"/></svg> Elevated worker</span><span class="dotsep">·</span><span class="op">Choose an ISO and target USB, then start the build.</span><span class="version">IsoToUsb · MIT · runs as administrator</span></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-wrap"><div class="frame-label"><span class="pill">Building</span> Running · right card raised</div>
+      <div class="frame dark edge state-building">
+        <div class="winchrome"><div class="title"><svg class="ic"><use href="#i-app"/></svg> IsoToUsb · Workshop</div><div class="spacer"></div><div class="caps"><div class="cap"><svg><use href="#i-min"/></svg></div><div class="cap"><svg><use href="#i-max"/></svg></div><div class="cap close"><svg><use href="#i-cls"/></svg></div></div></div>
+        <div class="content">
+          <div class="workspace">
+            <section class="side-card left-card inactive">
+      <div class="card-inner">
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Source ISO</div>
+          <div class="drop-card locked">
+            <svg class="big"><use href="#i-iso"/></svg>
+            <div class="drop-title">Win11_24H2_English_x64.iso</div>
+            <div class="drop-sub">5.42 GB · mounted read-only as G:\</div>
+            <button class="mini-btn" disabled>Browse...</button>
+          </div>
+        </div>
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Target USB</div>
+          <div class="combo locked"><div class="left"><svg class="ic"><use href="#i-usb"/></svg><span class="label">Disk 3 (G:) - SanDisk Ultra (29.8 GB)</span></div></div>
+        </div>
+        <div>
+          <div class="label-sm">Defaults</div>
+          <div class="defaults">
+            <span>Boot mode</span><span>UEFI</span>
+            <span>Partition scheme</span><span>GPT</span>
+            <span>File system</span><span>FAT32</span>
+            <span>Auto-split install.wim</span><span>On</span>
+          </div>
+        </div>
+        <div style="margin-top:auto;" class="infobar info"><svg class="ic"><use href="#i-info"/></svg><div class="body">Inputs are locked while files are being copied. Cancel to make changes.</div></div>
+      </div></section>
+            <div class="log-panel"><div class="log-head"><svg class="ic"><use href="#i-spinner"/></svg><span style="font-weight:600;">Log</span><span class="muted">· streaming · phase copy</span><span style="flex:1;"></span><span class="label-sm">Wrap</span><span class="label-sm">Auto-scroll ✓</span><span class="label-sm">Save…</span></div><div class="log-body"><div class="ln"><span class="ts">[12:04:01]</span> <span class="ok">validate</span> ISO checksum OK · 5.42 GB</div><div class="ln"><span class="ts">[12:04:03]</span> <span class="ok">validate</span> target Disk 3 confirmed USB · 29.8 GB · removable</div><div class="ln"><span class="ts">[12:04:05]</span> <span class="ac">mount</span> attaching ISO: Win11_24H2_English_x64.iso</div><div class="ln"><span class="ts">[12:04:13]</span> <span class="ok">mount</span> mounted at G:\ (read-only)</div><div class="ln"><span class="ts">[12:04:14]</span> <span class="ac">wipe</span> diskpart: clean Disk 3</div><div class="ln"><span class="ts">[12:04:18]</span> <span class="ac">wipe</span> diskpart: convert gpt</div><div class="ln"><span class="ts">[12:04:21]</span> <span class="ac">wipe</span> create partition primary size=29760</div><div class="ln"><span class="ts">[12:04:32]</span> <span class="ac">wipe</span> format fs=fat32 quick label=WIN_USB</div><div class="ln"><span class="ts">[12:04:37]</span> <span class="ok">wipe</span> G:\ ready · 29.79 GB free</div><div class="ln"><span class="ts">[12:04:39]</span> <span class="ac">copy</span> robocopy /MIR /R:1 /W:1 H:\ G:\</div><div class="ln"><span class="ts">[12:04:44]</span> <span class="fg">copy</span> autorun.inf · boot.wim · bootmgr · bootmgr.efi</div><div class="ln"><span class="ts">[12:05:11]</span> <span class="fg">copy</span> efi\* · 21.4 MB</div><div class="ln"><span class="ts">[12:06:48]</span> <span class="fg">copy</span> sources\install.wim · split pending</div><div class="ln"><span class="ts">[12:08:17]</span> <span class="wn">copy</span> long path 248 chars, robocopy /256 fallback</div><div class="ln"><span class="ts">[12:08:33]</span>     <span class="ac">→</span> 3.52 GB / 5.41 GB · 65% · 12.8 MB/s</div></div></div>
+            <section class="side-card right-card focus"><div class="card-inner"><div class="label-sm">Pipeline · 6 phases</div><div class="phase-list"><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Validate ✓</div><div class="detail">0:02 · ISO and USB OK</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Mount ISO ✓</div><div class="detail">0:08 · mounted as G:\</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Wipe & partition ✓</div><div class="detail">0:24 · 29.79 GB free</div></div></div><div class="phase-row active"><svg><use href="#i-spinner"/></svg><div><div class="title">Copy files · 65%</div><div class="detail">3.52 / 5.41 GB · 4:32 elapsed</div><div class="progress" style="margin-top:6px;"><i style="width:65%"></i></div></div></div><div class="phase-row pending"><svg><use href="#i-scissors"/></svg><div><div class="title">Split install.wim</div><div class="detail">pending · about 1 min</div></div></div><div class="phase-row pending"><svg><use href="#i-verify"/></svg><div><div class="title">Verify sample</div><div class="detail">pending · about 30 sec</div></div></div></div><div class="phase-summary"><div class="label-sm">Current operation</div><div class="metric"><span>Rate</span><strong>12.8 MB/s</strong></div><div class="metric"><span>ETA</span><strong>3:50</strong></div></div></div></section>
+          </div>
+          <div class="actionbar"><div class="action-row"><div class="status-pill busy"><svg><use href="#i-spinner"/></svg><span>Copying</span></div><div class="progress"><i style="width:65%"></i></div><div class="actions"><button class="btn" disabled><svg class="ic"><use href="#i-refresh"/></svg>Refresh</button><button class="btn"><svg class="ic"><use href="#i-x"/></svg>Cancel</button><button class="btn primary" disabled><svg class="ic"><use href="#i-check"/></svg>Start build</button></div></div><div class="caption-row"><span class="shield"><svg><use href="#i-shield"/></svg> Elevated worker</span><span class="dotsep">·</span><span class="op">Copying files — 3.52 GB / 5.41 GB · 12.8 MB/s · about 3:50 left</span><span class="version">IsoToUsb · MIT · runs as administrator</span></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-wrap"><div class="frame-label"><span class="pill">Done</span> Success · pipeline remains focal</div>
+      <div class="frame dark edge state-done">
+        <div class="winchrome"><div class="title"><svg class="ic"><use href="#i-app"/></svg> IsoToUsb · Workshop</div><div class="spacer"></div><div class="caps"><div class="cap"><svg><use href="#i-min"/></svg></div><div class="cap"><svg><use href="#i-max"/></svg></div><div class="cap close"><svg><use href="#i-cls"/></svg></div></div></div>
+        <div class="content">
+          <div class="workspace">
+            <section class="side-card left-card inactive">
+      <div class="card-inner">
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Source ISO</div>
+          <div class="drop-card">
+            <svg class="big"><use href="#i-iso"/></svg>
+            <div class="drop-title">Win11_24H2_English_x64.iso</div>
+            <div class="drop-sub">5.42 GB · unmounted after build</div>
+            <button class="mini-btn">Browse...</button>
+          </div>
+        </div>
+        <div>
+          <div class="label-sm" style="margin-bottom:6px;">Target USB</div>
+          <div class="combo"><div class="left"><svg class="ic"><use href="#i-usb"/></svg><span class="label">Disk 3 (G:) - SanDisk Ultra (29.8 GB)</span></div><svg class="chev"><use href="#i-chev-down"/></svg></div>
+        </div>
+        <div>
+          <div class="label-sm">Defaults</div>
+          <div class="defaults">
+            <span>Boot mode</span><span>UEFI</span>
+            <span>Partition scheme</span><span>GPT</span>
+            <span>File system</span><span>FAT32</span>
+            <span>Auto-split install.wim</span><span>On</span>
+          </div>
+        </div>
+        <div style="margin-top:auto;" class="infobar success"><svg class="ic"><use href="#i-check-circle"/></svg><div class="body"><strong>Build complete.</strong><div class="det">SanDisk Ultra is ready to boot on UEFI PCs.</div></div></div>
+      </div></section>
+            <div class="log-panel"><div class="log-head"><svg class="ic"><use href="#i-check-circle"/></svg><span style="font-weight:600;">Log</span><span class="muted">· 312 lines · complete</span><span style="flex:1;"></span><span class="label-sm">Wrap</span><span class="label-sm">Auto-scroll ✓</span><span class="label-sm">Save…</span></div><div class="log-body"><div class="ln"><span class="ts">[12:09:14]</span> <span class="ok">copy</span> done · 5.41 GB · 3,372 files · 4:35</div><div class="ln"><span class="ts">[12:09:15]</span> <span class="ac">split</span> sources\install.wim is 4.9 GB · splitting to FAT32-safe parts</div><div class="ln"><span class="ts">[12:09:17]</span> <span class="ac">split</span> dism /Split-Image /ImageFile:H:\sources\install.wim …</div><div class="ln"><span class="ts">[12:10:08]</span> <span class="fg">split</span> wrote G:\sources\install.swm · 4.00 GB</div><div class="ln"><span class="ts">[12:10:34]</span> <span class="fg">split</span> wrote G:\sources\install2.swm · 1.05 GB</div><div class="ln"><span class="ts">[12:10:38]</span> <span class="ok">split</span> done · 2 parts · 1:23</div><div class="ln"><span class="ts">[12:10:40]</span> <span class="ac">verify</span> sampling 20 files (random + boot critical)</div><div class="ln"><span class="ts">[12:10:42]</span> <span class="fg">verify</span> [01/20] bootmgr.efi · SHA-256 ✓</div><div class="ln"><span class="ts">[12:10:51]</span> <span class="fg">verify</span> [10/20] sources\setup.exe · SHA-256 ✓</div><div class="ln"><span class="ts">[12:11:01]</span> <span class="fg">verify</span> [19/20] efi\microsoft\boot\bcd · SHA-256 ✓</div><div class="ln"><span class="ts">[12:11:05]</span> <span class="ok">verify</span> complete · 20 / 20 files matched</div><div class="ln"><span class="ts">[12:11:07]</span> <span class="ok">done</span> bootable USB ready: Disk 3 (G:) - SanDisk Ultra</div></div></div>
+            <section class="side-card right-card focus"><div class="card-inner"><div class="label-sm">Pipeline · 6 phases</div><div class="phase-list"><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Validate ✓</div><div class="detail">0:02 · checksums OK</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Mount ISO ✓</div><div class="detail">0:08 · unmounted</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Wipe & partition ✓</div><div class="detail">0:24 · GPT/FAT32</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Copy files ✓</div><div class="detail">4:35 · 3,372 files</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Split install.wim ✓</div><div class="detail">1:23 · install.swm + install2.swm</div></div></div><div class="phase-row done"><svg><use href="#i-check-circle"/></svg><div><div class="title">Verify sample ✓</div><div class="detail">0:34 · 20 / 20 SHA checks</div></div></div></div><div class="phase-summary"><div class="label-sm">Result</div><div class="metric"><span>Total time</span><strong>7:06</strong></div><div class="metric"><span>Status</span><strong>Bootable USB ready</strong></div></div></div></section>
+          </div>
+          <div class="actionbar"><div class="action-row"><div class="status-pill done"><svg><use href="#i-check-circle"/></svg><span>Done</span></div><div class="progress success"><i style="width:100%"></i></div><div class="actions"><button class="btn"><svg class="ic"><use href="#i-refresh"/></svg>Refresh</button><button class="btn" disabled><svg class="ic"><use href="#i-x"/></svg>Cancel</button><button class="btn primary"><svg class="ic"><use href="#i-check"/></svg>Start build</button></div></div><div class="caption-row"><span class="shield"><svg><use href="#i-shield"/></svg> Elevated worker</span><span class="dotsep">·</span><span class="op">Completed successfully — bootable USB is ready.</span><span class="version">IsoToUsb · MIT · runs as administrator</span></div></div>
+        </div>
+      </div>
+    </div></div>
+</section>
+
+<section id="reco" class="reco">
+  <div class="card">
+    <h2>Designer recommendation</h2>
+    <p><strong>Ship Concept A · Twin floating cards, with a small accent-edge borrowed from Concept D if needed.</strong> It most directly solves the user's plane complaint: the card that matters is literally higher, while the inactive side remains readable for safety checks.</p>
+    <p>Implementation is practical in WinUI 3 using ThemeShadow or a layered Border plus a ≤180 ms state transition. Avoid the full dimming and scale-heavy options unless user testing shows the focus shift still needs more emphasis.</p>
+  </div>
+</section>
+</body>
+</html>

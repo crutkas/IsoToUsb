@@ -121,19 +121,99 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(IsResultVisible));
         OnPropertyChanged(nameof(Status));
         OnPropertyChanged(nameof(StatusPillText));
+        OnPropertyChanged(nameof(IsSetupFocal));
+        OnPropertyChanged(nameof(IsWorkFocal));
+        OnPropertyChanged(nameof(SetupFooterText));
+        OnPropertyChanged(nameof(SetupFooterGlyph));
     }
 
     partial void OnResultTitleChanged(string? value) => OnPropertyChanged(nameof(StatusPillText));
 
-    partial void OnResultSeverityChanged(InfoBarSeverity value) => OnPropertyChanged(nameof(Status));
+    partial void OnResultSeverityChanged(InfoBarSeverity value)
+    {
+        OnPropertyChanged(nameof(Status));
+        OnPropertyChanged(nameof(SetupFooterText));
+        OnPropertyChanged(nameof(SetupFooterGlyph));
+    }
 
     partial void OnCurrentOperationChanged(string value) => OnPropertyChanged(nameof(StatusPillText));
 
     partial void OnProgressPercentChanged(int value) => OnPropertyChanged(nameof(StatusPillText));
 
+    /// <summary>
+    /// True when the Setup card (left) should be the focal pane: idle, or
+    /// no build has run, or there's no result yet. The Work card dims.
+    /// </summary>
+    public bool IsSetupFocal => !IsBusy && !IsResultVisible;
+
+    /// <summary>
+    /// True when the Work card (right) should be the focal pane: during a
+    /// build, or after one settles so the user reads the result in context.
+    /// The Setup card dims.
+    /// </summary>
+    public bool IsWorkFocal => IsBusy || IsResultVisible;
+
+    /// <summary>
+    /// One-line readout shown in the bottom slot of the Setup card; replaces
+    /// the old <c>InfoBar</c>. Tracks the current setup state in plain prose
+    /// so the bottom action bar's status pill can be the canonical "Build
+    /// complete" channel without a redundant banner.
+    /// </summary>
+    public string SetupFooterText
+    {
+        get
+        {
+            if (IsResultVisible)
+            {
+                return ResultSeverity switch
+                {
+                    InfoBarSeverity.Success =>
+                        SelectedDrive is { } d
+                            ? $"Ready · plug {d.FriendlyName} into a UEFI PC."
+                            : "Ready · plug the USB into a UEFI PC.",
+                    InfoBarSeverity.Warning => "Finished with warnings — see log on the right.",
+                    InfoBarSeverity.Error => "Build failed — see log on the right.",
+                    _ => Result ?? "Done.",
+                };
+            }
+            if (IsBusy)
+            {
+                return "Building... see progress on the right.";
+            }
+            if (string.IsNullOrWhiteSpace(IsoPath))
+            {
+                return "Drop a Windows ISO or click Browse.";
+            }
+            if (SelectedDrive is null)
+            {
+                return "Pick a USB drive to flash.";
+            }
+            return "Ready to build · click Start build.";
+        }
+    }
+
+    /// <summary>Segoe Fluent glyph for the Setup footer; matches <see cref="SetupFooterText"/>.</summary>
+    public string SetupFooterGlyph
+    {
+        get
+        {
+            if (IsResultVisible)
+            {
+                return ResultSeverity switch
+                {
+                    InfoBarSeverity.Success => "\uE73E", // CheckMark
+                    InfoBarSeverity.Warning => "\uE7BA", // Warning
+                    InfoBarSeverity.Error => "\uE783",   // Error
+                    _ => "\uE946",                       // Info
+                };
+            }
+            return "\uE946"; // Info
+        }
+    }
+
     public ObservableCollection<DiskInfo> Drives { get; } = [];
 
-    public ObservableCollection<string> LogLines { get; } = [];
+    public ObservableCollection<LogLine> LogLines { get; } = [];
 
     /// <summary>
     /// Ordered list of pipeline phases shown to the user. Stays
@@ -143,12 +223,12 @@ public partial class MainViewModel : ObservableObject
     public ObservableCollection<PhaseItem> Phases { get; } = new(
         new[]
         {
-            new PhaseItem("Validate ISO and target"),
-            new PhaseItem("Mount install image"),
-            new PhaseItem("Wipe and partition USB"),
-            new PhaseItem("Copy files to USB"),
-            new PhaseItem("Split large WIM files"),
-            new PhaseItem("Verify random sample"),
+            new PhaseItem("Validate ISO and target", "Validate", "\uE7C3"), // Page
+            new PhaseItem("Mount install image",     "Mount",    "\uE8B7"), // FolderHorizontal
+            new PhaseItem("Wipe and partition USB",  "Wipe",     "\uE74D"), // Delete
+            new PhaseItem("Copy files to USB",       "Copy",     "\uE8C8"), // Copy
+            new PhaseItem("Split large WIM files",   "Split",    "\uE8FB"), // Cut
+            new PhaseItem("Verify random sample",    "Verify",   "\uE930"), // Certificate
         });
 
     // Index alongside Phases for O(1) lookup from PipelineStage.
@@ -165,13 +245,25 @@ public partial class MainViewModel : ObservableObject
         File.Exists(IsoPath) &&
         SelectedDrive is not null;
 
-    partial void OnIsoPathChanged(string? value) => OnPropertyChanged(nameof(CanStart));
-    partial void OnSelectedDriveChanged(DiskInfo? value) => OnPropertyChanged(nameof(CanStart));
+    partial void OnIsoPathChanged(string? value)
+    {
+        OnPropertyChanged(nameof(CanStart));
+        OnPropertyChanged(nameof(SetupFooterText));
+    }
+    partial void OnSelectedDriveChanged(DiskInfo? value)
+    {
+        OnPropertyChanged(nameof(CanStart));
+        OnPropertyChanged(nameof(SetupFooterText));
+    }
     partial void OnIsBusyChanged(bool value)
     {
         OnPropertyChanged(nameof(CanStart));
         OnPropertyChanged(nameof(Status));
         OnPropertyChanged(nameof(StatusPillText));
+        OnPropertyChanged(nameof(IsSetupFocal));
+        OnPropertyChanged(nameof(IsWorkFocal));
+        OnPropertyChanged(nameof(SetupFooterText));
+        OnPropertyChanged(nameof(SetupFooterGlyph));
     }
 
     /// <summary>Re-enumerate USB drives. Safe to call any time.</summary>
@@ -343,12 +435,54 @@ public partial class MainViewModel : ObservableObject
 
     private void AppendLog(string line)
     {
-        var stamped = $"[{DateTime.Now:HH:mm:ss}] {line}";
-        LogLines.Add(stamped);
+        var timestamp = $"[{DateTime.Now:HH:mm:ss}] ";
+        var (keyword, rest, severity) = ParseLogContent(line);
+        LogLines.Add(new LogLine(timestamp, keyword, rest, severity));
         while (LogLines.Count > 500)
         {
             LogLines.RemoveAt(0);
         }
+    }
+
+    // Split "validate ISO checksum OK · 5.42 GB" into ("validate", " ISO checksum OK · 5.42 GB", Action).
+    // Heuristic severity:
+    //   - contains "fail|error|exception|abort"  -> Error
+    //   - contains "warn|fallback|skipped|long path" -> Warn
+    //   - otherwise -> Action (so the leading verb pops in green)
+    // Lines without a leading word fall back to Info (no coloured keyword).
+    private static (string keyword, string rest, LogSeverity severity) ParseLogContent(string line)
+    {
+        if (string.IsNullOrEmpty(line))
+        {
+            return (string.Empty, string.Empty, LogSeverity.Info);
+        }
+
+        var sevHint = ClassifySeverity(line);
+        var space = line.IndexOf(' ');
+        if (space <= 0)
+        {
+            // Single token: treat the whole line as the keyword.
+            return (line, string.Empty, sevHint);
+        }
+
+        var keyword = line[..space];
+        var rest = line[space..];
+        return (keyword, rest, sevHint);
+    }
+
+    private static LogSeverity ClassifySeverity(string line)
+    {
+        // Lower-cased contains-check is good enough for keyword colouring.
+        var l = line.ToLowerInvariant();
+        if (l.Contains("fail") || l.Contains("error") || l.Contains("exception") || l.Contains("abort"))
+        {
+            return LogSeverity.Error;
+        }
+        if (l.Contains("warn") || l.Contains("fallback") || l.Contains("skipped") || l.Contains("long path"))
+        {
+            return LogSeverity.Warn;
+        }
+        return LogSeverity.Action;
     }
 
     /// <summary>Resets every phase row to Pending with no detail text.</summary>
