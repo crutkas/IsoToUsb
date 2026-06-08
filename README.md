@@ -5,7 +5,7 @@ A very basic Windows-only tool that turns a Windows install ISO into a bootable 
 ![IsoToUsb mid-build: phase rail on the left, live progress log on the right, status pill + progress bar at the bottom.](docs/screenshots/copying-progress.png)
 
 ## Status
-🚧 Functional MVP. The core pipeline (mount ➜ repartition ➜ copy ➜ split ➜ verify) is wired up and unit-tested. Live USB writes have not yet been smoke-tested by the author — try on a spare stick first.
+🚧 Functional MVP. The core pipeline (mount ➜ repartition ➜ copy ➜ split ➜ verify) is wired up, unit-tested, and has booted Windows Setup end-to-end on real hardware. Try on a spare stick first.
 
 ## Goals
 - **One screen.** Drag-and-drop an ISO, pick a USB drive, go.
@@ -51,6 +51,15 @@ picker, drag-drop) that Windows blocks for elevated processes:
 - **UEFI only.** Don't expect this image to boot on legacy-BIOS-only hardware.
 - **Windows install ISOs only.** Linux distros need raw-image writes — out of scope.
 - **No persistence / multi-boot.** One ISO per stick, FAT32 only.
+
+## Troubleshooting
+
+### "Couldn't find a bootable operating system" on a Surface (or other recent UEFI)
+The USB is fine — your firmware is rejecting the Microsoft-signed bootloader because its **Secure Boot revocation list (DBX) is stale**. Microsoft updated the Windows bootloader signature as part of the BlackLotus mitigation in [KB5025885](https://support.microsoft.com/en-us/topic/kb5025885-how-to-manage-the-windows-boot-manager-revocations-for-secure-boot-changes-associated-with-cve-2023-24932-41a4a423-01b1-4c0c-86c1-9d9c0d4b39c8), and any device that hasn't received the matching UEFI firmware update will reject a recent Windows ISO's bootloader.
+
+Workaround: enter UEFI setup, **temporarily disable Secure Boot**, install Windows, fully patch, then re-enable Secure Boot — the in-place updates refresh DBX so the bootloader is accepted again.
+
+Surface-specific notes: USB-C ports may not enumerate as boot devices on older firmware; try USB-A. To force boot from USB regardless of NVRAM order: power off, hold **Volume Down**, press-and-release **Power**, keep holding Volume Down until the Surface logo appears.
 
 ## Build
 ```powershell
