@@ -1,0 +1,1138 @@
+<!doctype html>
+<html lang="en" data-board-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1700">
+<title>IsoToUsb — Elevation Indicator v1 (designer proposals)</title>
+<style>
+  /* ===== Board chrome (matches design/elevation-a-v2.html) ===== */
+  :root {
+    --board-bg: #ECECEC;
+    --board-card: #FFFFFF;
+    --board-text: #1B1B1B;
+    --board-sub: #5D5D5D;
+    --board-tert: #8A8A8A;
+    --board-border: rgba(0,0,0,0.08);
+    --board-border-strong: rgba(0,0,0,0.14);
+    --board-accent: #0067C0;
+    --board-accent-strong: #005A9E;
+    --warn: #C04C00;
+    --warn-bg: rgba(192,76,0,0.10);
+    --danger: #C42B1C;
+    --shield-bg: rgba(0,103,192,0.10);
+    --shield-bg-strong: rgba(0,103,192,0.18);
+    --app-bg: #F3F3F3;
+    --app-card: #FFFFFF;
+    --app-card-2: #FAFAFA;
+    --app-stroke: rgba(0,0,0,0.0578);
+    --app-text: #1B1B1B;
+    --app-sub: #5D5D5D;
+    --app-tert: #8A8A8A;
+  }
+  html[data-board-theme="dark"] {
+    --board-bg: #161616;
+    --board-card: #1F1F1F;
+    --board-text: #F5F5F5;
+    --board-sub: #B5B5B5;
+    --board-tert: #8A8A8A;
+    --board-border: rgba(255,255,255,0.08);
+    --board-border-strong: rgba(255,255,255,0.16);
+    --board-accent: #4CC2FF;
+    --board-accent-strong: #76D0FF;
+    --warn: #FFB454;
+    --warn-bg: rgba(255,180,84,0.14);
+    --danger: #FF99A4;
+    --shield-bg: rgba(76,194,255,0.14);
+    --shield-bg-strong: rgba(76,194,255,0.22);
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--board-bg);
+    color: var(--board-text);
+    font-family: "Segoe UI Variable Display", "Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-size: 14px; line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .topbar {
+    position: sticky; top: 0; z-index: 50;
+    display: flex; align-items: center; gap: 24px;
+    padding: 14px 28px;
+    background: color-mix(in srgb, var(--board-card) 88%, transparent);
+    backdrop-filter: blur(18px) saturate(140%);
+    border-bottom: 1px solid var(--board-border);
+  }
+  .topbar .brand { font-weight: 600; font-size: 15px; display: flex; align-items: center; gap: 10px; }
+  .topbar .brand .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--board-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--board-accent) 22%, transparent); }
+  .topbar .spacer { flex: 1; }
+  .topbar .meta { color: var(--board-sub); font-size: 12px; }
+  .theme-toggle {
+    border: 1px solid var(--board-border); background: transparent; color: var(--board-text);
+    border-radius: 6px; padding: 6px 12px; font: inherit; font-size: 12px; font-weight: 500; cursor: pointer;
+  }
+  .theme-toggle:hover { background: var(--board-border); }
+
+  .page-intro { max-width: 1240px; margin: 32px auto 8px; padding: 0 28px; }
+  .page-intro h1 { font-size: 30px; font-weight: 600; margin: 0 0 8px; letter-spacing: -0.2px; }
+  .page-intro p { color: var(--board-sub); margin: 0 0 8px; max-width: 920px; }
+  .page-intro .problem {
+    background: var(--board-card); border: 1px solid var(--board-border); border-radius: 12px;
+    padding: 18px 22px; margin-top: 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 18px;
+  }
+  .page-intro .problem h3 { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: var(--board-sub); margin: 0 0 8px; }
+  .page-intro .problem p { font-size: 13px; margin: 0; color: var(--board-text); }
+  .page-intro .legend { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 14px; font-size: 12px; color: var(--board-sub); }
+  .page-intro .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .page-intro .legend .sw { width: 10px; height: 10px; border-radius: 3px; border: 1px solid var(--board-border); }
+
+  /* ===== Concept layout ===== */
+  .concept { margin: 48px auto 0; max-width: 1640px; padding: 0 28px; }
+  .concept-head {
+    background: var(--board-card); border: 1px solid var(--board-border); border-radius: 12px;
+    padding: 20px 24px; margin-bottom: 18px;
+    display: grid; grid-template-columns: 1.1fr 1fr 1fr; gap: 22px;
+  }
+  .concept-head h2 { margin: 0 0 6px; font-size: 22px; font-weight: 600; }
+  .concept-head .tag { display: inline-block; background: color-mix(in srgb, var(--board-accent) 14%, transparent); color: var(--board-accent); font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 10px; letter-spacing: 0.3px; text-transform: uppercase; margin-bottom: 8px; }
+  .concept-head .pitch { color: var(--board-text); font-size: 14px; margin: 0; }
+  .concept-head h3 { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: var(--board-sub); margin: 0 0 8px; }
+  .concept-head ul { margin: 0; padding-left: 18px; color: var(--board-sub); font-size: 13px; }
+  .concept-head ul li { margin-bottom: 4px; }
+
+  /* Two states (idle + active) side by side, each shown in light AND dark */
+  .state-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 14px;
+  }
+  .state-col {
+    background: var(--board-card); border: 1px solid var(--board-border); border-radius: 12px;
+    padding: 16px;
+  }
+  .state-col .label {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
+  }
+  .state-col .label .name { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: var(--board-sub); }
+  .state-col .label .pill { font-size: 11px; padding: 2px 8px; border-radius: 8px; font-weight: 600; }
+  .pill-idle { background: color-mix(in srgb, var(--board-tert) 18%, transparent); color: var(--board-sub); }
+  .pill-active { background: color-mix(in srgb, var(--board-accent) 18%, transparent); color: var(--board-accent); }
+
+  .theme-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .theme-pair .theme-cap { font-size: 10px; font-weight: 600; color: var(--board-tert); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px; }
+
+  /* ===== Mini app frame (a compressed IsoToUsb window) ===== */
+  .frame {
+    --f-bg: #F3F3F3;
+    --f-card: #FFFFFF;
+    --f-card-2: #FAFAFA;
+    --f-stroke: rgba(0,0,0,0.07);
+    --f-text: #1B1B1B;
+    --f-sub: #5D5D5D;
+    --f-tert: #8A8A8A;
+    --f-accent: #0067C0;
+    --f-accent-soft: rgba(0,103,192,0.10);
+    --f-accent-strong: rgba(0,103,192,0.18);
+    --f-warn: #C04C00;
+    --f-title-bg: #F3F3F3;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--board-border-strong);
+    background: var(--f-bg);
+    color: var(--f-text);
+    font-size: 11px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+  }
+  .frame.dark {
+    --f-bg: #202020;
+    --f-card: #2B2B2B;
+    --f-card-2: #262626;
+    --f-stroke: rgba(255,255,255,0.07);
+    --f-text: #F5F5F5;
+    --f-sub: #B5B5B5;
+    --f-tert: #8A8A8A;
+    --f-accent: #4CC2FF;
+    --f-accent-soft: rgba(76,194,255,0.14);
+    --f-accent-strong: rgba(76,194,255,0.24);
+    --f-warn: #FFB454;
+    --f-title-bg: #202020;
+  }
+
+  /* Title bar */
+  .titlebar {
+    display: flex; align-items: center;
+    background: var(--f-title-bg);
+    border-bottom: 1px solid var(--f-stroke);
+    padding: 0 0 0 10px;
+    height: 28px;
+    font-size: 11px; color: var(--f-text);
+    position: relative;
+  }
+  .titlebar .ico { width: 12px; height: 12px; border-radius: 2px; background: var(--f-accent); margin-right: 8px; }
+  .titlebar .ttl { font-size: 11px; opacity: 0.95; }
+  .titlebar .sp { flex: 1; }
+  .titlebar .wb { width: 38px; height: 28px; display: inline-flex; align-items: center; justify-content: center; color: var(--f-sub); font-family: "Segoe Fluent Icons", "Segoe MDL2 Assets", sans-serif; font-size: 9px; }
+  .titlebar .wb.close:hover { background: #E81123; color: #FFFFFF; }
+
+  .body {
+    display: grid; grid-template-columns: 130px 1fr; gap: 8px;
+    padding: 8px;
+  }
+  .card {
+    background: var(--f-card); border: 1px solid var(--f-stroke); border-radius: 7px;
+    padding: 8px;
+  }
+  .card .h { font-size: 9px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase; color: var(--f-sub); margin-bottom: 6px; }
+  .card .iso-box {
+    border: 1.5px solid var(--f-accent); border-radius: 5px; padding: 8px;
+    text-align: center; background: var(--f-accent-soft);
+  }
+  .card .iso-box .gly { font-family: "Segoe Fluent Icons", "Segoe MDL2 Assets", sans-serif; font-size: 16px; color: var(--f-text); }
+  .card .iso-box .fn { font-size: 9px; color: var(--f-text); margin: 4px 0 2px; word-break: break-all; }
+  .card .iso-box .sub { font-size: 8px; color: var(--f-sub); }
+  .card .iso-box .browse { display: inline-block; margin-top: 6px; padding: 3px 10px; background: var(--f-card-2); border: 1px solid var(--f-stroke); border-radius: 4px; font-size: 9px; }
+  .target {
+    border: 1px solid var(--f-stroke); border-radius: 5px;
+    padding: 5px 8px; font-size: 9px; display: flex; align-items: center; gap: 5px; background: var(--f-card-2);
+  }
+  .target .gly { font-family: "Segoe Fluent Icons", "Segoe MDL2 Assets", sans-serif; font-size: 11px; color: var(--f-sub); }
+  .target .name { flex: 1; }
+  .target .chev { color: var(--f-sub); font-size: 9px; }
+  .defaults { font-size: 9px; color: var(--f-sub); }
+  .defaults .row { display: flex; justify-content: space-between; padding: 1px 0; }
+  .defaults .row b { color: var(--f-text); font-weight: 600; }
+  .infobar {
+    margin-top: 8px; padding: 5px 8px; border: 1px solid var(--f-stroke); border-radius: 5px;
+    background: var(--f-card-2); font-size: 9px; color: var(--f-sub);
+    display: flex; align-items: center; gap: 5px;
+  }
+  .infobar.busy { border-color: color-mix(in srgb, var(--f-accent) 38%, transparent); background: var(--f-accent-soft); color: var(--f-text); }
+  .infobar .gly { font-family: "Segoe Fluent Icons", "Segoe MDL2 Assets", sans-serif; font-size: 10px; color: var(--f-accent); }
+
+  /* Right column (work) */
+  .work { display: grid; grid-template-rows: auto 1fr auto; gap: 6px; }
+  .work-top {
+    display: flex; align-items: center; gap: 8px;
+    padding: 4px 8px;
+    background: var(--f-card); border: 1px solid var(--f-stroke); border-radius: 7px;
+  }
+  .work-top .pill {
+    background: var(--f-card-2); border: 1px solid var(--f-stroke); border-radius: 999px;
+    padding: 2px 8px; font-size: 9px; display: inline-flex; align-items: center; gap: 5px;
+  }
+  .work-top .pill .gly { font-family: "Segoe Fluent Icons", "Segoe MDL2 Assets", sans-serif; font-size: 9px; color: var(--f-sub); }
+  .work-top .pill.active { background: var(--f-accent-soft); border-color: color-mix(in srgb, var(--f-accent) 35%, transparent); color: var(--f-text); }
+  .work-top .pill.active .gly { color: var(--f-accent); }
+  .work-top .dot { color: var(--f-tert); font-size: 9px; }
+  .work-top .phase { font-size: 10px; color: var(--f-text); }
+  .work-top .sp { flex: 1; }
+
+  .work-main { display: grid; grid-template-columns: 38px 1fr; gap: 6px; }
+  .rail {
+    background: var(--f-card); border: 1px solid var(--f-stroke); border-radius: 7px;
+    padding: 6px 3px; display: flex; flex-direction: column; align-items: center; gap: 8px;
+  }
+  .rail .step { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .rail .step .b { width: 22px; height: 22px; border-radius: 50%; background: var(--f-card-2); border: 1px solid var(--f-stroke); display: flex; align-items: center; justify-content: center; font-family: "Segoe Fluent Icons", "Segoe MDL2 Assets", sans-serif; font-size: 10px; color: var(--f-sub); }
+  .rail .step.done .b { background: var(--f-accent-soft); border-color: color-mix(in srgb, var(--f-accent) 40%, transparent); color: var(--f-accent); }
+  .rail .step.active .b { background: var(--f-accent); border-color: var(--f-accent); color: #FFF; box-shadow: 0 0 0 2px color-mix(in srgb, var(--f-accent) 25%, transparent); }
+  .rail .step .l { font-size: 7px; color: var(--f-sub); }
+
+  .log {
+    background: var(--f-card); border: 1px solid var(--f-stroke); border-radius: 7px;
+    padding: 8px; font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: 9px;
+    color: var(--f-text); overflow: hidden;
+  }
+  .log .lh { display: flex; align-items: center; gap: 6px; padding-bottom: 6px; margin-bottom: 6px; border-bottom: 1px solid var(--f-stroke); font-family: "Segoe UI Variable", "Segoe UI", system-ui; font-size: 9px; color: var(--f-sub); }
+  .log .lh .gly { font-family: "Segoe Fluent Icons", "Segoe MDL2 Assets", sans-serif; color: var(--f-sub); }
+  .log .line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .log .ts { color: var(--f-tert); }
+  .log .ok { color: #107C10; }
+  .frame.dark .log .ok { color: #6CCB5F; }
+  .log .warn { color: var(--f-warn); }
+
+  .actions {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 8px;
+    background: var(--f-card); border: 1px solid var(--f-stroke); border-radius: 7px;
+  }
+  .actions .pill {
+    background: var(--f-card-2); border: 1px solid var(--f-stroke); border-radius: 999px;
+    padding: 2px 8px; font-size: 9px; color: var(--f-sub);
+  }
+  .actions .sp { flex: 1; }
+  .btn {
+    border: 1px solid var(--f-stroke); background: var(--f-card-2); color: var(--f-text);
+    border-radius: 5px; padding: 4px 10px; font-size: 9px; display: inline-flex; align-items: center; gap: 4px;
+  }
+  .btn.primary { background: var(--f-accent); border-color: var(--f-accent); color: #FFFFFF; }
+  .btn .gly { font-family: "Segoe Fluent Icons", "Segoe MDL2 Assets", sans-serif; font-size: 9px; }
+
+  /* ============================================================
+     OPTION A — Prominent footer band (full width, only when active)
+     ============================================================ */
+  .footer-strip {
+    margin-top: 0;
+    padding: 4px 10px;
+    border-top: 1px solid var(--f-stroke);
+    background: var(--f-bg);
+    display: flex; align-items: center; gap: 8px;
+    font-size: 9px;
+  }
+  .footer-strip .left { display: inline-flex; align-items: center; gap: 5px; color: var(--f-sub); }
+  .footer-strip .left .gly { font-family: "Segoe Fluent Icons", "Segoe MDL2 Assets", sans-serif; font-size: 10px; }
+  .footer-strip .sp { flex: 1; }
+  .footer-strip .right { color: var(--f-tert); }
+
+  /* Active band */
+  .elev-band {
+    margin-top: 0;
+    border-top: 1px solid color-mix(in srgb, var(--f-accent) 50%, transparent);
+    background: linear-gradient(90deg,
+      color-mix(in srgb, var(--f-accent) 22%, var(--f-bg)) 0%,
+      color-mix(in srgb, var(--f-accent) 14%, var(--f-bg)) 60%,
+      color-mix(in srgb, var(--f-accent) 22%, var(--f-bg)) 100%);
+    padding: 8px 12px;
+    display: flex; align-items: center; gap: 10px;
+    font-size: 10px;
+    position: relative; overflow: hidden;
+  }
+  .elev-band::before {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--f-accent) 35%, transparent) 50%, transparent 100%);
+    transform: translateX(-100%);
+    animation: sheen 3.4s ease-in-out infinite;
+    pointer-events: none;
+  }
+  @keyframes sheen { 0% { transform: translateX(-100%);} 60% { transform: translateX(100%);} 100% { transform: translateX(100%);} }
+  .elev-band .shield {
+    width: 26px; height: 26px; border-radius: 6px;
+    background: var(--f-accent); color: #FFF;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: "Segoe Fluent Icons", "Segoe MDL2 Assets", sans-serif; font-size: 14px;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--f-accent) 25%, transparent);
+    flex-shrink: 0;
+    position: relative; z-index: 1;
+  }
+  .elev-band .txt { display: flex; flex-direction: column; gap: 1px; position: relative; z-index: 1; }
+  .elev-band .ttl { font-size: 10px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--f-accent); }
+  .frame.dark .elev-band .ttl { color: var(--f-accent); }
+  .elev-band .sub { font-size: 9px; color: var(--f-text); }
+  .elev-band .sub b { color: var(--f-text); }
+  .elev-band .sp { flex: 1; position: relative; z-index: 1; }
+  .elev-band .target-tag {
+    background: rgba(255,255,255,0.55); border: 1px solid color-mix(in srgb, var(--f-accent) 35%, transparent);
+    color: var(--f-text); padding: 3px 8px; border-radius: 999px; font-size: 9px;
+    display: inline-flex; align-items: center; gap: 4px;
+    position: relative; z-index: 1;
+  }
+  .frame.dark .elev-band .target-tag { background: rgba(0,0,0,0.35); }
+  .elev-band .target-tag .gly { font-family: "Segoe Fluent Icons", "Segoe MDL2 Assets", sans-serif; font-size: 9px; color: var(--f-warn); }
+  .elev-band .pulse {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--f-accent);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--f-accent) 55%, transparent);
+    animation: pulse 1.6s ease-out infinite;
+    position: relative; z-index: 1;
+  }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--f-accent) 55%, transparent);}
+    70% { box-shadow: 0 0 0 9px transparent;}
+    100% { box-shadow: 0 0 0 0 transparent;}
+  }
+
+  /* ============================================================
+     OPTION B — Floating elevation chip (top-right of Work card)
+     ============================================================ */
+  .chip-anchor { position: relative; }
+  .elev-chip {
+    position: absolute; top: -3px; right: -3px;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 9px 4px 5px;
+    background: var(--f-accent);
+    color: #FFFFFF;
+    border-radius: 999px;
+    font-size: 9px; font-weight: 600; letter-spacing: 0.4px;
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--f-accent) 45%, transparent), 0 0 0 2px var(--f-bg);
+  }
+  .elev-chip .shield {
+    width: 16px; height: 16px; border-radius: 50%;
+    background: rgba(255,255,255,0.22);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: "Segoe Fluent Icons", "Segoe MDL2 Assets", sans-serif; font-size: 9px;
+  }
+  .elev-chip .dot {
+    width: 6px; height: 6px; border-radius: 50%; background: #FFFFFF;
+    margin-left: 1px;
+    box-shadow: 0 0 0 0 rgba(255,255,255,0.9);
+    animation: pulseW 1.6s ease-out infinite;
+  }
+  @keyframes pulseW {
+    0% { box-shadow: 0 0 0 0 rgba(255,255,255,0.9);}
+    70% { box-shadow: 0 0 0 7px rgba(255,255,255,0);}
+    100% { box-shadow: 0 0 0 0 rgba(255,255,255,0);}
+  }
+  /* Footer for option B keeps the existing slim strip, but bolder on active */
+  .footer-strip.b-active {
+    background: var(--f-accent-soft);
+    border-top-color: color-mix(in srgb, var(--f-accent) 40%, transparent);
+  }
+  .footer-strip.b-active .left { color: var(--f-text); font-weight: 600; }
+  .footer-strip.b-active .left .gly { color: var(--f-accent); }
+
+  /* ============================================================
+     OPTION C — Title-bar tint + reinforced footer
+     ============================================================ */
+  .titlebar.c-active {
+    background: linear-gradient(90deg,
+      color-mix(in srgb, var(--f-accent) 32%, var(--f-title-bg)) 0%,
+      color-mix(in srgb, var(--f-accent) 18%, var(--f-title-bg)) 100%);
+    border-bottom-color: color-mix(in srgb, var(--f-accent) 55%, transparent);
+    color: var(--f-text);
+  }
+  .titlebar.c-active .ico {
+    background: #FFFFFF;
+    color: var(--f-accent);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: "Segoe Fluent Icons", "Segoe MDL2 Assets", sans-serif;
+    font-size: 9px; line-height: 1;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--f-accent) 55%, transparent);
+  }
+  .titlebar.c-active .ttl { font-weight: 600; }
+  .titlebar.c-active .badge {
+    margin-left: 8px; padding: 2px 8px;
+    background: var(--f-accent); color: #FFF;
+    border-radius: 999px;
+    font-size: 9px; font-weight: 700; letter-spacing: 0.6px;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .titlebar.c-active .badge .gly { font-family: "Segoe Fluent Icons", "Segoe MDL2 Assets", sans-serif; font-size: 9px; }
+  .titlebar.c-active .badge .dot {
+    width: 5px; height: 5px; border-radius: 50%; background: #FFFFFF;
+    box-shadow: 0 0 0 0 rgba(255,255,255,0.9);
+    animation: pulseW 1.6s ease-out infinite;
+  }
+  .footer-strip.c-active {
+    background: color-mix(in srgb, var(--f-accent) 14%, var(--f-bg));
+    border-top: 1px solid color-mix(in srgb, var(--f-accent) 40%, transparent);
+    padding: 6px 12px;
+  }
+  .footer-strip.c-active .shield-tag {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: var(--f-accent); color: #FFFFFF;
+    padding: 3px 9px; border-radius: 999px;
+    font-size: 9px; font-weight: 700; letter-spacing: 0.4px;
+  }
+  .footer-strip.c-active .shield-tag .gly { font-family: "Segoe Fluent Icons", "Segoe MDL2 Assets", sans-serif; font-size: 10px; }
+  .footer-strip.c-active .meta { color: var(--f-text); font-size: 10px; }
+  .footer-strip.c-active .meta b { color: var(--f-text); }
+
+  /* ===== Recommendation card ===== */
+  .recommend {
+    margin: 56px auto; max-width: 1240px; padding: 0 28px;
+  }
+  .recommend .card-r {
+    background: var(--board-card); border: 1px solid var(--board-border); border-radius: 12px;
+    padding: 22px 26px;
+    border-left: 4px solid var(--board-accent);
+  }
+  .recommend h2 { margin: 0 0 6px; font-size: 22px; font-weight: 600; }
+  .recommend .tag { display: inline-block; background: color-mix(in srgb, var(--board-accent) 16%, transparent); color: var(--board-accent); font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 10px; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 8px; }
+  .recommend p { color: var(--board-text); margin: 8px 0; }
+
+  /* small helpers */
+  .glyph { font-family: "Segoe Fluent Icons", "Segoe MDL2 Assets", sans-serif; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand"><span class="dot"></span> IsoToUsb · Designer</div>
+  <div class="spacer"></div>
+  <div class="meta">elevation-indicator-v1 · 3 proposals · light + dark</div>
+  <button class="theme-toggle" onclick="document.documentElement.setAttribute('data-board-theme', document.documentElement.getAttribute('data-board-theme')==='dark'?'light':'dark')">Toggle board theme</button>
+</div>
+
+<div class="page-intro">
+  <h1>Elevation indicator — make admin runtime unmistakable</h1>
+  <p>
+    The UI process runs as <code>asInvoker</code>; a separate worker process is spawned via UAC only when the user clicks <b>Start build</b>.
+    Today, that worker's existence is signalled by an 11&nbsp;pt secondary-text label "🛡 Elevated worker" tucked in the bottom-left footer — visually identical whether the worker is alive or not.
+    The user wants <b>much louder presence while the worker is actually running</b> (and quiet calm when it's not).
+  </p>
+  <div class="problem">
+    <div>
+      <h3>What stays the same</h3>
+      <p>The bottom-left position concept (the user likes it), the phase rail + log as the visual focus, and the asInvoker manifest. No layout reflow on state change.</p>
+    </div>
+    <div>
+      <h3>What must change</h3>
+      <p>When <code>IsBusy=true</code> (worker spawned and pipeline running), the elevation status must be impossible to miss — full-width tint, animated cue, or a colored window-chrome accent. When idle, it should fade to a quiet hint.</p>
+    </div>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:#0067C0"></span> Accent / elevation blue (#0067C0 light, #4CC2FF dark)</span>
+    <span><span class="sw" style="background:#C04C00"></span> Warning / target drive (#C04C00 / #FFB454)</span>
+    <span><span class="glyph">&#xE7EF;</span> Shield (UE7EF, Segoe Fluent Icons)</span>
+    <span><span class="glyph">&#xE730;</span> Permissions (UE730)</span>
+  </div>
+</div>
+
+<!-- =====================================================================
+     OPTION A — Prominent footer band
+     ===================================================================== -->
+<div class="concept">
+  <div class="concept-head">
+    <div>
+      <span class="tag">Option A</span>
+      <h2>Prominent footer band</h2>
+      <p class="pitch">The existing bottom-left footer grows in place into a full-width tinted band the moment the worker spawns — same anchor the user already likes, but loud.</p>
+    </div>
+    <div>
+      <h3>Behavior</h3>
+      <ul>
+        <li>Idle → 22&nbsp;px slim caption: "asInvoker · will elevate on Start".</li>
+        <li>Active → 38&nbsp;px tinted band slides up in place, no other layout shift.</li>
+        <li>Subtle 3.4&nbsp;s sheen sweeps L→R while running; pulse dot at right.</li>
+        <li>Band carries the target drive callout (the most destructive bit of context).</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Dark-mode parity & a11y</h3>
+      <ul>
+        <li>Light: accent #0067C0 over warm grey; dark: #4CC2FF over #202020 — both ≥ 4.5:1 on body text.</li>
+        <li>Sheen + pulse respect <code>prefers-reduced-motion</code> (static fill only).</li>
+        <li>The band itself is a live region so screen readers announce "Elevated worker active — writing to Disk 1, USB DISK 3.0".</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="state-grid">
+
+    <!-- IDLE -->
+    <div class="state-col">
+      <div class="label"><div class="name">Idle — worker not running</div><div class="pill pill-idle">asInvoker</div></div>
+      <div class="theme-pair">
+        <div>
+          <div class="theme-cap">Light</div>
+          <div class="frame">
+            <div class="titlebar"><div class="ico"></div><div class="ttl">IsoToUsb</div><div class="sp"></div><div class="wb">&#xE921;</div><div class="wb">&#xE922;</div><div class="wb close">&#xE8BB;</div></div>
+            <div class="body">
+              <div class="card">
+                <div class="h">Source ISO</div>
+                <div class="iso-box"><div class="gly">&#xE7C3;</div><div class="fn">en-us_win11_…iso</div><div class="sub">or Browse</div><div class="browse">Browse…</div></div>
+                <div class="h" style="margin-top:8px">Target USB</div>
+                <div class="target"><div class="gly">&#xE88E;</div><div class="name">Disk 1 — USB DISK 3.0</div><div class="chev">⌄</div></div>
+                <div class="infobar" style="margin-top:8px"><span class="gly">&#xE946;</span> Ready to build · click Start build.</div>
+              </div>
+              <div class="work">
+                <div class="work-top"><div class="pill"><span class="gly">&#xE7C3;</span> Log</div><div class="dot">·</div><div class="phase">Idle</div></div>
+                <div class="work-main">
+                  <div class="rail">
+                    <div class="step"><div class="b">&#xE73E;</div><div class="l">Val</div></div>
+                    <div class="step"><div class="b">&#xE188;</div><div class="l">Mnt</div></div>
+                    <div class="step"><div class="b">&#xE74D;</div><div class="l">Wipe</div></div>
+                    <div class="step"><div class="b">&#xE8C8;</div><div class="l">Copy</div></div>
+                    <div class="step"><div class="b">&#xE8AC;</div><div class="l">Split</div></div>
+                    <div class="step"><div class="b">&#xE73E;</div><div class="l">Verify</div></div>
+                  </div>
+                  <div class="log">
+                    <div class="lh"><span class="gly">&#xE7C3;</span> Log · Idle</div>
+                    <div class="line"><span class="ts">[10:44:47]</span> <span class="ok">Selected</span> ISO: en-us_win11_…iso</div>
+                  </div>
+                </div>
+                <div class="actions"><div class="pill">Idle</div><div class="sp"></div><button class="btn"><span class="gly">&#xE72C;</span> Refresh</button><button class="btn">&times; Cancel</button><button class="btn primary"><span class="gly">&#xE768;</span> Start build</button></div>
+              </div>
+            </div>
+            <div class="footer-strip">
+              <span class="left"><span class="gly">&#xE730;</span> asInvoker · worker will elevate on <b style="color:var(--f-text)">Start</b></span>
+              <span class="sp"></span>
+              <span class="right">IsoToUsb · MIT</span>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="theme-cap">Dark</div>
+          <div class="frame dark">
+            <div class="titlebar"><div class="ico"></div><div class="ttl">IsoToUsb</div><div class="sp"></div><div class="wb">&#xE921;</div><div class="wb">&#xE922;</div><div class="wb close">&#xE8BB;</div></div>
+            <div class="body">
+              <div class="card">
+                <div class="h">Source ISO</div>
+                <div class="iso-box"><div class="gly">&#xE7C3;</div><div class="fn">en-us_win11_…iso</div><div class="sub">or Browse</div><div class="browse">Browse…</div></div>
+                <div class="h" style="margin-top:8px">Target USB</div>
+                <div class="target"><div class="gly">&#xE88E;</div><div class="name">Disk 1 — USB DISK 3.0</div><div class="chev">⌄</div></div>
+                <div class="infobar" style="margin-top:8px"><span class="gly">&#xE946;</span> Ready to build · click Start build.</div>
+              </div>
+              <div class="work">
+                <div class="work-top"><div class="pill"><span class="gly">&#xE7C3;</span> Log</div><div class="dot">·</div><div class="phase">Idle</div></div>
+                <div class="work-main">
+                  <div class="rail">
+                    <div class="step"><div class="b">&#xE73E;</div><div class="l">Val</div></div>
+                    <div class="step"><div class="b">&#xE188;</div><div class="l">Mnt</div></div>
+                    <div class="step"><div class="b">&#xE74D;</div><div class="l">Wipe</div></div>
+                    <div class="step"><div class="b">&#xE8C8;</div><div class="l">Copy</div></div>
+                    <div class="step"><div class="b">&#xE8AC;</div><div class="l">Split</div></div>
+                    <div class="step"><div class="b">&#xE73E;</div><div class="l">Verify</div></div>
+                  </div>
+                  <div class="log">
+                    <div class="lh"><span class="gly">&#xE7C3;</span> Log · Idle</div>
+                    <div class="line"><span class="ts">[10:44:47]</span> <span class="ok">Selected</span> ISO: en-us_win11_…iso</div>
+                  </div>
+                </div>
+                <div class="actions"><div class="pill">Idle</div><div class="sp"></div><button class="btn"><span class="gly">&#xE72C;</span> Refresh</button><button class="btn">&times; Cancel</button><button class="btn primary"><span class="gly">&#xE768;</span> Start build</button></div>
+              </div>
+            </div>
+            <div class="footer-strip">
+              <span class="left"><span class="gly">&#xE730;</span> asInvoker · worker will elevate on <b style="color:var(--f-text)">Start</b></span>
+              <span class="sp"></span>
+              <span class="right">IsoToUsb · MIT</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACTIVE -->
+    <div class="state-col">
+      <div class="label"><div class="name">Active — worker running, wiping Disk 1</div><div class="pill pill-active">Elevated · Wipe</div></div>
+      <div class="theme-pair">
+        <div>
+          <div class="theme-cap">Light</div>
+          <div class="frame">
+            <div class="titlebar"><div class="ico"></div><div class="ttl">IsoToUsb</div><div class="sp"></div><div class="wb">&#xE921;</div><div class="wb">&#xE922;</div><div class="wb close">&#xE8BB;</div></div>
+            <div class="body">
+              <div class="card">
+                <div class="h">Source ISO</div>
+                <div class="iso-box"><div class="gly">&#xE7C3;</div><div class="fn">en-us_win11_…iso</div><div class="sub">locked while running</div></div>
+                <div class="h" style="margin-top:8px">Target USB</div>
+                <div class="target"><div class="gly">&#xE88E;</div><div class="name">Disk 1 — USB DISK 3.0</div><div class="chev">⌄</div></div>
+                <div class="infobar busy" style="margin-top:8px"><span class="gly">&#xE895;</span> Wiping disk 1 · 38% (22 GB / 57.8 GB)</div>
+              </div>
+              <div class="work">
+                <div class="work-top"><div class="pill active"><span class="gly">&#xE7C3;</span> Log</div><div class="dot">·</div><div class="phase">Wipe · 38%</div></div>
+                <div class="work-main">
+                  <div class="rail">
+                    <div class="step done"><div class="b">&#xE73E;</div><div class="l">Val</div></div>
+                    <div class="step done"><div class="b">&#xE188;</div><div class="l">Mnt</div></div>
+                    <div class="step active"><div class="b">&#xE74D;</div><div class="l">Wipe</div></div>
+                    <div class="step"><div class="b">&#xE8C8;</div><div class="l">Copy</div></div>
+                    <div class="step"><div class="b">&#xE8AC;</div><div class="l">Split</div></div>
+                    <div class="step"><div class="b">&#xE73E;</div><div class="l">Verify</div></div>
+                  </div>
+                  <div class="log">
+                    <div class="lh"><span class="gly">&#xE7C3;</span> Log · Wipe</div>
+                    <div class="line"><span class="ts">[10:44:47]</span> <span class="ok">Validated</span> ISO checksum OK</div>
+                    <div class="line"><span class="ts">[10:44:51]</span> <span class="ok">Mounted</span> ISO on M:</div>
+                    <div class="line"><span class="ts">[10:44:52]</span> Spawning elevated worker (UAC)…</div>
+                    <div class="line"><span class="ts">[10:44:55]</span> <span class="warn">Wiping</span> Disk 1 (USB DISK 3.0, 57.8 GB)…</div>
+                  </div>
+                </div>
+                <div class="actions"><div class="pill" style="background:var(--f-accent-soft);border-color:color-mix(in srgb,var(--f-accent) 35%, transparent);color:var(--f-text)">Wipe · 38%</div><div class="sp"></div><button class="btn"><span class="gly">&#xE72C;</span> Refresh</button><button class="btn">&times; Cancel</button><button class="btn primary" style="opacity:.55"><span class="gly">&#xE768;</span> Start build</button></div>
+              </div>
+            </div>
+            <!-- THE BAND -->
+            <div class="elev-band">
+              <div class="shield">&#xE7EF;</div>
+              <div class="txt">
+                <span class="ttl">Admin access active</span>
+                <span class="sub">Elevated worker is writing now · phase <b>Wipe</b></span>
+              </div>
+              <div class="sp"></div>
+              <div class="target-tag"><span class="gly">&#xE7BA;</span> Disk 1 · USB DISK 3.0 · 57.8 GB</div>
+              <div class="pulse"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="theme-cap">Dark</div>
+          <div class="frame dark">
+            <div class="titlebar"><div class="ico"></div><div class="ttl">IsoToUsb</div><div class="sp"></div><div class="wb">&#xE921;</div><div class="wb">&#xE922;</div><div class="wb close">&#xE8BB;</div></div>
+            <div class="body">
+              <div class="card">
+                <div class="h">Source ISO</div>
+                <div class="iso-box"><div class="gly">&#xE7C3;</div><div class="fn">en-us_win11_…iso</div><div class="sub">locked while running</div></div>
+                <div class="h" style="margin-top:8px">Target USB</div>
+                <div class="target"><div class="gly">&#xE88E;</div><div class="name">Disk 1 — USB DISK 3.0</div><div class="chev">⌄</div></div>
+                <div class="infobar busy" style="margin-top:8px"><span class="gly">&#xE895;</span> Wiping disk 1 · 38% (22 GB / 57.8 GB)</div>
+              </div>
+              <div class="work">
+                <div class="work-top"><div class="pill active"><span class="gly">&#xE7C3;</span> Log</div><div class="dot">·</div><div class="phase">Wipe · 38%</div></div>
+                <div class="work-main">
+                  <div class="rail">
+                    <div class="step done"><div class="b">&#xE73E;</div><div class="l">Val</div></div>
+                    <div class="step done"><div class="b">&#xE188;</div><div class="l">Mnt</div></div>
+                    <div class="step active"><div class="b">&#xE74D;</div><div class="l">Wipe</div></div>
+                    <div class="step"><div class="b">&#xE8C8;</div><div class="l">Copy</div></div>
+                    <div class="step"><div class="b">&#xE8AC;</div><div class="l">Split</div></div>
+                    <div class="step"><div class="b">&#xE73E;</div><div class="l">Verify</div></div>
+                  </div>
+                  <div class="log">
+                    <div class="lh"><span class="gly">&#xE7C3;</span> Log · Wipe</div>
+                    <div class="line"><span class="ts">[10:44:47]</span> <span class="ok">Validated</span> ISO checksum OK</div>
+                    <div class="line"><span class="ts">[10:44:51]</span> <span class="ok">Mounted</span> ISO on M:</div>
+                    <div class="line"><span class="ts">[10:44:52]</span> Spawning elevated worker (UAC)…</div>
+                    <div class="line"><span class="ts">[10:44:55]</span> <span class="warn">Wiping</span> Disk 1 (USB DISK 3.0, 57.8 GB)…</div>
+                  </div>
+                </div>
+                <div class="actions"><div class="pill" style="background:var(--f-accent-soft);border-color:color-mix(in srgb,var(--f-accent) 35%, transparent);color:var(--f-text)">Wipe · 38%</div><div class="sp"></div><button class="btn"><span class="gly">&#xE72C;</span> Refresh</button><button class="btn">&times; Cancel</button><button class="btn primary" style="opacity:.55"><span class="gly">&#xE768;</span> Start build</button></div>
+              </div>
+            </div>
+            <div class="elev-band">
+              <div class="shield">&#xE7EF;</div>
+              <div class="txt">
+                <span class="ttl">Admin access active</span>
+                <span class="sub">Elevated worker is writing now · phase <b>Wipe</b></span>
+              </div>
+              <div class="sp"></div>
+              <div class="target-tag"><span class="gly">&#xE7BA;</span> Disk 1 · USB DISK 3.0 · 57.8 GB</div>
+              <div class="pulse"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- =====================================================================
+     OPTION B — Floating elevation chip
+     ===================================================================== -->
+<div class="concept">
+  <div class="concept-head">
+    <div>
+      <span class="tag">Option B</span>
+      <h2>Floating elevation chip</h2>
+      <p class="pitch">A solid-fill accent chip floats on the top-right of the Work card while the worker is alive — like the macOS recording indicator, always in peripheral vision wherever the user looks.</p>
+    </div>
+    <div>
+      <h3>Behavior</h3>
+      <ul>
+        <li>Idle → footer says "asInvoker"; no chip anywhere.</li>
+        <li>Active → chip fades in over the Log header. Pulse dot ticks at 1.6&nbsp;s.</li>
+        <li>Hover reveals tooltip "PID 8421 · started 14:02:11 · phase Wipe".</li>
+        <li>Footer also brightens to a soft accent fill so peripheral cues exist top + bottom.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Dark-mode parity & a11y</h3>
+      <ul>
+        <li>Solid accent fill in both themes (white text) holds 8:1+ contrast.</li>
+        <li>Chip never overlaps the cancel/start row — sits inside Log header padding.</li>
+        <li>Lightest footprint of the three; survives if the window is narrow.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="state-grid">
+
+    <!-- IDLE -->
+    <div class="state-col">
+      <div class="label"><div class="name">Idle — worker not running</div><div class="pill pill-idle">asInvoker</div></div>
+      <div class="theme-pair">
+        <div>
+          <div class="theme-cap">Light</div>
+          <div class="frame">
+            <div class="titlebar"><div class="ico"></div><div class="ttl">IsoToUsb</div><div class="sp"></div><div class="wb">&#xE921;</div><div class="wb">&#xE922;</div><div class="wb close">&#xE8BB;</div></div>
+            <div class="body">
+              <div class="card">
+                <div class="h">Source ISO</div>
+                <div class="iso-box"><div class="gly">&#xE7C3;</div><div class="fn">en-us_win11_…iso</div><div class="sub">or Browse</div><div class="browse">Browse…</div></div>
+                <div class="h" style="margin-top:8px">Target USB</div>
+                <div class="target"><div class="gly">&#xE88E;</div><div class="name">Disk 1 — USB DISK 3.0</div><div class="chev">⌄</div></div>
+                <div class="infobar" style="margin-top:8px"><span class="gly">&#xE946;</span> Ready to build · click Start build.</div>
+              </div>
+              <div class="work chip-anchor">
+                <div class="work-top"><div class="pill"><span class="gly">&#xE7C3;</span> Log</div><div class="dot">·</div><div class="phase">Idle</div></div>
+                <div class="work-main">
+                  <div class="rail">
+                    <div class="step"><div class="b">&#xE73E;</div><div class="l">Val</div></div>
+                    <div class="step"><div class="b">&#xE188;</div><div class="l">Mnt</div></div>
+                    <div class="step"><div class="b">&#xE74D;</div><div class="l">Wipe</div></div>
+                    <div class="step"><div class="b">&#xE8C8;</div><div class="l">Copy</div></div>
+                    <div class="step"><div class="b">&#xE8AC;</div><div class="l">Split</div></div>
+                    <div class="step"><div class="b">&#xE73E;</div><div class="l">Verify</div></div>
+                  </div>
+                  <div class="log">
+                    <div class="lh"><span class="gly">&#xE7C3;</span> Log · Idle</div>
+                    <div class="line"><span class="ts">[10:44:47]</span> <span class="ok">Selected</span> ISO: en-us_win11_…iso</div>
+                  </div>
+                </div>
+                <div class="actions"><div class="pill">Idle</div><div class="sp"></div><button class="btn"><span class="gly">&#xE72C;</span> Refresh</button><button class="btn">&times; Cancel</button><button class="btn primary"><span class="gly">&#xE768;</span> Start build</button></div>
+              </div>
+            </div>
+            <div class="footer-strip">
+              <span class="left"><span class="gly">&#xE730;</span> asInvoker · will elevate on Start</span>
+              <span class="sp"></span>
+              <span class="right">IsoToUsb · MIT</span>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="theme-cap">Dark</div>
+          <div class="frame dark">
+            <div class="titlebar"><div class="ico"></div><div class="ttl">IsoToUsb</div><div class="sp"></div><div class="wb">&#xE921;</div><div class="wb">&#xE922;</div><div class="wb close">&#xE8BB;</div></div>
+            <div class="body">
+              <div class="card">
+                <div class="h">Source ISO</div>
+                <div class="iso-box"><div class="gly">&#xE7C3;</div><div class="fn">en-us_win11_…iso</div><div class="sub">or Browse</div><div class="browse">Browse…</div></div>
+                <div class="h" style="margin-top:8px">Target USB</div>
+                <div class="target"><div class="gly">&#xE88E;</div><div class="name">Disk 1 — USB DISK 3.0</div><div class="chev">⌄</div></div>
+                <div class="infobar" style="margin-top:8px"><span class="gly">&#xE946;</span> Ready to build · click Start build.</div>
+              </div>
+              <div class="work chip-anchor">
+                <div class="work-top"><div class="pill"><span class="gly">&#xE7C3;</span> Log</div><div class="dot">·</div><div class="phase">Idle</div></div>
+                <div class="work-main">
+                  <div class="rail">
+                    <div class="step"><div class="b">&#xE73E;</div><div class="l">Val</div></div>
+                    <div class="step"><div class="b">&#xE188;</div><div class="l">Mnt</div></div>
+                    <div class="step"><div class="b">&#xE74D;</div><div class="l">Wipe</div></div>
+                    <div class="step"><div class="b">&#xE8C8;</div><div class="l">Copy</div></div>
+                    <div class="step"><div class="b">&#xE8AC;</div><div class="l">Split</div></div>
+                    <div class="step"><div class="b">&#xE73E;</div><div class="l">Verify</div></div>
+                  </div>
+                  <div class="log">
+                    <div class="lh"><span class="gly">&#xE7C3;</span> Log · Idle</div>
+                    <div class="line"><span class="ts">[10:44:47]</span> <span class="ok">Selected</span> ISO: en-us_win11_…iso</div>
+                  </div>
+                </div>
+                <div class="actions"><div class="pill">Idle</div><div class="sp"></div><button class="btn"><span class="gly">&#xE72C;</span> Refresh</button><button class="btn">&times; Cancel</button><button class="btn primary"><span class="gly">&#xE768;</span> Start build</button></div>
+              </div>
+            </div>
+            <div class="footer-strip">
+              <span class="left"><span class="gly">&#xE730;</span> asInvoker · will elevate on Start</span>
+              <span class="sp"></span>
+              <span class="right">IsoToUsb · MIT</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACTIVE -->
+    <div class="state-col">
+      <div class="label"><div class="name">Active — chip floats over Log header</div><div class="pill pill-active">Elevated · Wipe</div></div>
+      <div class="theme-pair">
+        <div>
+          <div class="theme-cap">Light</div>
+          <div class="frame">
+            <div class="titlebar"><div class="ico"></div><div class="ttl">IsoToUsb</div><div class="sp"></div><div class="wb">&#xE921;</div><div class="wb">&#xE922;</div><div class="wb close">&#xE8BB;</div></div>
+            <div class="body">
+              <div class="card">
+                <div class="h">Source ISO</div>
+                <div class="iso-box"><div class="gly">&#xE7C3;</div><div class="fn">en-us_win11_…iso</div><div class="sub">locked while running</div></div>
+                <div class="h" style="margin-top:8px">Target USB</div>
+                <div class="target"><div class="gly">&#xE88E;</div><div class="name">Disk 1 — USB DISK 3.0</div><div class="chev">⌄</div></div>
+                <div class="infobar busy" style="margin-top:8px"><span class="gly">&#xE895;</span> Wiping disk 1 · 38%</div>
+              </div>
+              <div class="work chip-anchor">
+                <div class="elev-chip"><span class="shield">&#xE7EF;</span> ELEVATED <span class="dot"></span></div>
+                <div class="work-top"><div class="pill active"><span class="gly">&#xE7C3;</span> Log</div><div class="dot">·</div><div class="phase">Wipe · 38%</div></div>
+                <div class="work-main">
+                  <div class="rail">
+                    <div class="step done"><div class="b">&#xE73E;</div><div class="l">Val</div></div>
+                    <div class="step done"><div class="b">&#xE188;</div><div class="l">Mnt</div></div>
+                    <div class="step active"><div class="b">&#xE74D;</div><div class="l">Wipe</div></div>
+                    <div class="step"><div class="b">&#xE8C8;</div><div class="l">Copy</div></div>
+                    <div class="step"><div class="b">&#xE8AC;</div><div class="l">Split</div></div>
+                    <div class="step"><div class="b">&#xE73E;</div><div class="l">Verify</div></div>
+                  </div>
+                  <div class="log">
+                    <div class="lh"><span class="gly">&#xE7C3;</span> Log · Wipe</div>
+                    <div class="line"><span class="ts">[10:44:47]</span> <span class="ok">Validated</span> ISO checksum OK</div>
+                    <div class="line"><span class="ts">[10:44:51]</span> <span class="ok">Mounted</span> ISO on M:</div>
+                    <div class="line"><span class="ts">[10:44:52]</span> Spawning elevated worker (UAC)…</div>
+                    <div class="line"><span class="ts">[10:44:55]</span> <span class="warn">Wiping</span> Disk 1 (USB DISK 3.0)…</div>
+                  </div>
+                </div>
+                <div class="actions"><div class="pill" style="background:var(--f-accent-soft);border-color:color-mix(in srgb,var(--f-accent) 35%, transparent);color:var(--f-text)">Wipe · 38%</div><div class="sp"></div><button class="btn"><span class="gly">&#xE72C;</span> Refresh</button><button class="btn">&times; Cancel</button><button class="btn primary" style="opacity:.55"><span class="gly">&#xE768;</span> Start build</button></div>
+              </div>
+            </div>
+            <div class="footer-strip b-active">
+              <span class="left"><span class="gly">&#xE7EF;</span> Elevated worker running · phase <b>Wipe</b></span>
+              <span class="sp"></span>
+              <span class="right">Disk 1 · USB DISK 3.0 · 57.8 GB</span>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="theme-cap">Dark</div>
+          <div class="frame dark">
+            <div class="titlebar"><div class="ico"></div><div class="ttl">IsoToUsb</div><div class="sp"></div><div class="wb">&#xE921;</div><div class="wb">&#xE922;</div><div class="wb close">&#xE8BB;</div></div>
+            <div class="body">
+              <div class="card">
+                <div class="h">Source ISO</div>
+                <div class="iso-box"><div class="gly">&#xE7C3;</div><div class="fn">en-us_win11_…iso</div><div class="sub">locked while running</div></div>
+                <div class="h" style="margin-top:8px">Target USB</div>
+                <div class="target"><div class="gly">&#xE88E;</div><div class="name">Disk 1 — USB DISK 3.0</div><div class="chev">⌄</div></div>
+                <div class="infobar busy" style="margin-top:8px"><span class="gly">&#xE895;</span> Wiping disk 1 · 38%</div>
+              </div>
+              <div class="work chip-anchor">
+                <div class="elev-chip"><span class="shield">&#xE7EF;</span> ELEVATED <span class="dot"></span></div>
+                <div class="work-top"><div class="pill active"><span class="gly">&#xE7C3;</span> Log</div><div class="dot">·</div><div class="phase">Wipe · 38%</div></div>
+                <div class="work-main">
+                  <div class="rail">
+                    <div class="step done"><div class="b">&#xE73E;</div><div class="l">Val</div></div>
+                    <div class="step done"><div class="b">&#xE188;</div><div class="l">Mnt</div></div>
+                    <div class="step active"><div class="b">&#xE74D;</div><div class="l">Wipe</div></div>
+                    <div class="step"><div class="b">&#xE8C8;</div><div class="l">Copy</div></div>
+                    <div class="step"><div class="b">&#xE8AC;</div><div class="l">Split</div></div>
+                    <div class="step"><div class="b">&#xE73E;</div><div class="l">Verify</div></div>
+                  </div>
+                  <div class="log">
+                    <div class="lh"><span class="gly">&#xE7C3;</span> Log · Wipe</div>
+                    <div class="line"><span class="ts">[10:44:47]</span> <span class="ok">Validated</span> ISO checksum OK</div>
+                    <div class="line"><span class="ts">[10:44:51]</span> <span class="ok">Mounted</span> ISO on M:</div>
+                    <div class="line"><span class="ts">[10:44:52]</span> Spawning elevated worker (UAC)…</div>
+                    <div class="line"><span class="ts">[10:44:55]</span> <span class="warn">Wiping</span> Disk 1 (USB DISK 3.0)…</div>
+                  </div>
+                </div>
+                <div class="actions"><div class="pill" style="background:var(--f-accent-soft);border-color:color-mix(in srgb,var(--f-accent) 35%, transparent);color:var(--f-text)">Wipe · 38%</div><div class="sp"></div><button class="btn"><span class="gly">&#xE72C;</span> Refresh</button><button class="btn">&times; Cancel</button><button class="btn primary" style="opacity:.55"><span class="gly">&#xE768;</span> Start build</button></div>
+              </div>
+            </div>
+            <div class="footer-strip b-active">
+              <span class="left"><span class="gly">&#xE7EF;</span> Elevated worker running · phase <b>Wipe</b></span>
+              <span class="sp"></span>
+              <span class="right">Disk 1 · USB DISK 3.0 · 57.8 GB</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- =====================================================================
+     OPTION C — Title-bar tint + reinforced footer
+     ===================================================================== -->
+<div class="concept">
+  <div class="concept-head">
+    <div>
+      <span class="tag">Option C</span>
+      <h2>Title-bar tint + reinforced footer</h2>
+      <p class="pitch">The entire window chrome announces the state — title bar tints accent-blue with a shield badge, footer carries a matching pill. Visible even when the window is minimized to taskbar preview.</p>
+    </div>
+    <div>
+      <h3>Behavior</h3>
+      <ul>
+        <li>Uses <code>AppWindowTitleBar.BackgroundColor</code> + <code>ButtonForegroundColor</code> APIs on the actual title bar (no client-area emulation).</li>
+        <li>Title bar shows shield icon, "ELEVATED" pill with pulse dot, app title.</li>
+        <li>Footer keeps the user's preferred bottom-left anchor with a shield pill + target drive callout.</li>
+        <li>Cross-fades back to neutral chrome the instant the worker exits — feels like a "mode" not a layout change.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Dark-mode parity & a11y</h3>
+      <ul>
+        <li>Light: deep accent gradient over title bar; dark: brighter cyan-blue gradient for sufficient lift off the window frame.</li>
+        <li>Caption buttons stay legible (forced white-on-accent fill in both themes).</li>
+        <li>Taskbar thumbnail preview also shows the tinted chrome — visibility even when window is occluded.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="state-grid">
+
+    <!-- IDLE -->
+    <div class="state-col">
+      <div class="label"><div class="name">Idle — worker not running</div><div class="pill pill-idle">asInvoker</div></div>
+      <div class="theme-pair">
+        <div>
+          <div class="theme-cap">Light</div>
+          <div class="frame">
+            <div class="titlebar"><div class="ico"></div><div class="ttl">IsoToUsb</div><div class="sp"></div><div class="wb">&#xE921;</div><div class="wb">&#xE922;</div><div class="wb close">&#xE8BB;</div></div>
+            <div class="body">
+              <div class="card">
+                <div class="h">Source ISO</div>
+                <div class="iso-box"><div class="gly">&#xE7C3;</div><div class="fn">en-us_win11_…iso</div><div class="sub">or Browse</div><div class="browse">Browse…</div></div>
+                <div class="h" style="margin-top:8px">Target USB</div>
+                <div class="target"><div class="gly">&#xE88E;</div><div class="name">Disk 1 — USB DISK 3.0</div><div class="chev">⌄</div></div>
+                <div class="infobar" style="margin-top:8px"><span class="gly">&#xE946;</span> Ready to build · click Start build.</div>
+              </div>
+              <div class="work">
+                <div class="work-top"><div class="pill"><span class="gly">&#xE7C3;</span> Log</div><div class="dot">·</div><div class="phase">Idle</div></div>
+                <div class="work-main">
+                  <div class="rail">
+                    <div class="step"><div class="b">&#xE73E;</div><div class="l">Val</div></div>
+                    <div class="step"><div class="b">&#xE188;</div><div class="l">Mnt</div></div>
+                    <div class="step"><div class="b">&#xE74D;</div><div class="l">Wipe</div></div>
+                    <div class="step"><div class="b">&#xE8C8;</div><div class="l">Copy</div></div>
+                    <div class="step"><div class="b">&#xE8AC;</div><div class="l">Split</div></div>
+                    <div class="step"><div class="b">&#xE73E;</div><div class="l">Verify</div></div>
+                  </div>
+                  <div class="log">
+                    <div class="lh"><span class="gly">&#xE7C3;</span> Log · Idle</div>
+                    <div class="line"><span class="ts">[10:44:47]</span> <span class="ok">Selected</span> ISO: en-us_win11_…iso</div>
+                  </div>
+                </div>
+                <div class="actions"><div class="pill">Idle</div><div class="sp"></div><button class="btn"><span class="gly">&#xE72C;</span> Refresh</button><button class="btn">&times; Cancel</button><button class="btn primary"><span class="gly">&#xE768;</span> Start build</button></div>
+              </div>
+            </div>
+            <div class="footer-strip">
+              <span class="left"><span class="gly">&#xE730;</span> asInvoker · worker will elevate on Start</span>
+              <span class="sp"></span>
+              <span class="right">IsoToUsb · MIT</span>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="theme-cap">Dark</div>
+          <div class="frame dark">
+            <div class="titlebar"><div class="ico"></div><div class="ttl">IsoToUsb</div><div class="sp"></div><div class="wb">&#xE921;</div><div class="wb">&#xE922;</div><div class="wb close">&#xE8BB;</div></div>
+            <div class="body">
+              <div class="card">
+                <div class="h">Source ISO</div>
+                <div class="iso-box"><div class="gly">&#xE7C3;</div><div class="fn">en-us_win11_…iso</div><div class="sub">or Browse</div><div class="browse">Browse…</div></div>
+                <div class="h" style="margin-top:8px">Target USB</div>
+                <div class="target"><div class="gly">&#xE88E;</div><div class="name">Disk 1 — USB DISK 3.0</div><div class="chev">⌄</div></div>
+                <div class="infobar" style="margin-top:8px"><span class="gly">&#xE946;</span> Ready to build · click Start build.</div>
+              </div>
+              <div class="work">
+                <div class="work-top"><div class="pill"><span class="gly">&#xE7C3;</span> Log</div><div class="dot">·</div><div class="phase">Idle</div></div>
+                <div class="work-main">
+                  <div class="rail">
+                    <div class="step"><div class="b">&#xE73E;</div><div class="l">Val</div></div>
+                    <div class="step"><div class="b">&#xE188;</div><div class="l">Mnt</div></div>
+                    <div class="step"><div class="b">&#xE74D;</div><div class="l">Wipe</div></div>
+                    <div class="step"><div class="b">&#xE8C8;</div><div class="l">Copy</div></div>
+                    <div class="step"><div class="b">&#xE8AC;</div><div class="l">Split</div></div>
+                    <div class="step"><div class="b">&#xE73E;</div><div class="l">Verify</div></div>
+                  </div>
+                  <div class="log">
+                    <div class="lh"><span class="gly">&#xE7C3;</span> Log · Idle</div>
+                    <div class="line"><span class="ts">[10:44:47]</span> <span class="ok">Selected</span> ISO: en-us_win11_…iso</div>
+                  </div>
+                </div>
+                <div class="actions"><div class="pill">Idle</div><div class="sp"></div><button class="btn"><span class="gly">&#xE72C;</span> Refresh</button><button class="btn">&times; Cancel</button><button class="btn primary"><span class="gly">&#xE768;</span> Start build</button></div>
+              </div>
+            </div>
+            <div class="footer-strip">
+              <span class="left"><span class="gly">&#xE730;</span> asInvoker · worker will elevate on Start</span>
+              <span class="sp"></span>
+              <span class="right">IsoToUsb · MIT</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACTIVE -->
+    <div class="state-col">
+      <div class="label"><div class="name">Active — chrome turns accent</div><div class="pill pill-active">Elevated · Wipe</div></div>
+      <div class="theme-pair">
+        <div>
+          <div class="theme-cap">Light</div>
+          <div class="frame">
+            <div class="titlebar c-active">
+              <div class="ico glyph">&#xE7EF;</div>
+              <div class="ttl">IsoToUsb</div>
+              <div class="badge"><span class="dot"></span> ELEVATED</div>
+              <div class="sp"></div>
+              <div class="wb" style="color:var(--f-text)">&#xE921;</div><div class="wb" style="color:var(--f-text)">&#xE922;</div><div class="wb close" style="color:var(--f-text)">&#xE8BB;</div>
+            </div>
+            <div class="body">
+              <div class="card">
+                <div class="h">Source ISO</div>
+                <div class="iso-box"><div class="gly">&#xE7C3;</div><div class="fn">en-us_win11_…iso</div><div class="sub">locked while running</div></div>
+                <div class="h" style="margin-top:8px">Target USB</div>
+                <div class="target"><div class="gly">&#xE88E;</div><div class="name">Disk 1 — USB DISK 3.0</div><div class="chev">⌄</div></div>
+                <div class="infobar busy" style="margin-top:8px"><span class="gly">&#xE895;</span> Wiping disk 1 · 38%</div>
+              </div>
+              <div class="work">
+                <div class="work-top"><div class="pill active"><span class="gly">&#xE7C3;</span> Log</div><div class="dot">·</div><div class="phase">Wipe · 38%</div></div>
+                <div class="work-main">
+                  <div class="rail">
+                    <div class="step done"><div class="b">&#xE73E;</div><div class="l">Val</div></div>
+                    <div class="step done"><div class="b">&#xE188;</div><div class="l">Mnt</div></div>
+                    <div class="step active"><div class="b">&#xE74D;</div><div class="l">Wipe</div></div>
+                    <div class="step"><div class="b">&#xE8C8;</div><div class="l">Copy</div></div>
+                    <div class="step"><div class="b">&#xE8AC;</div><div class="l">Split</div></div>
+                    <div class="step"><div class="b">&#xE73E;</div><div class="l">Verify</div></div>
+                  </div>
+                  <div class="log">
+                    <div class="lh"><span class="gly">&#xE7C3;</span> Log · Wipe</div>
+                    <div class="line"><span class="ts">[10:44:47]</span> <span class="ok">Validated</span> ISO checksum OK</div>
+                    <div class="line"><span class="ts">[10:44:51]</span> <span class="ok">Mounted</span> ISO on M:</div>
+                    <div class="line"><span class="ts">[10:44:52]</span> Spawning elevated worker (UAC)…</div>
+                    <div class="line"><span class="ts">[10:44:55]</span> <span class="warn">Wiping</span> Disk 1 (USB DISK 3.0)…</div>
+                  </div>
+                </div>
+                <div class="actions"><div class="pill" style="background:var(--f-accent-soft);border-color:color-mix(in srgb,var(--f-accent) 35%, transparent);color:var(--f-text)">Wipe · 38%</div><div class="sp"></div><button class="btn"><span class="gly">&#xE72C;</span> Refresh</button><button class="btn">&times; Cancel</button><button class="btn primary" style="opacity:.55"><span class="gly">&#xE768;</span> Start build</button></div>
+              </div>
+            </div>
+            <div class="footer-strip c-active">
+              <span class="shield-tag"><span class="gly">&#xE7EF;</span> ELEVATED</span>
+              <span class="meta" style="margin-left:8px">Worker writing now · phase <b>Wipe</b></span>
+              <span class="sp"></span>
+              <span class="meta">Disk 1 · USB DISK 3.0 · 57.8 GB</span>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="theme-cap">Dark</div>
+          <div class="frame dark">
+            <div class="titlebar c-active">
+              <div class="ico glyph">&#xE7EF;</div>
+              <div class="ttl">IsoToUsb</div>
+              <div class="badge"><span class="dot"></span> ELEVATED</div>
+              <div class="sp"></div>
+              <div class="wb" style="color:var(--f-text)">&#xE921;</div><div class="wb" style="color:var(--f-text)">&#xE922;</div><div class="wb close" style="color:var(--f-text)">&#xE8BB;</div>
+            </div>
+            <div class="body">
+              <div class="card">
+                <div class="h">Source ISO</div>
+                <div class="iso-box"><div class="gly">&#xE7C3;</div><div class="fn">en-us_win11_…iso</div><div class="sub">locked while running</div></div>
+                <div class="h" style="margin-top:8px">Target USB</div>
+                <div class="target"><div class="gly">&#xE88E;</div><div class="name">Disk 1 — USB DISK 3.0</div><div class="chev">⌄</div></div>
+                <div class="infobar busy" style="margin-top:8px"><span class="gly">&#xE895;</span> Wiping disk 1 · 38%</div>
+              </div>
+              <div class="work">
+                <div class="work-top"><div class="pill active"><span class="gly">&#xE7C3;</span> Log</div><div class="dot">·</div><div class="phase">Wipe · 38%</div></div>
+                <div class="work-main">
+                  <div class="rail">
+                    <div class="step done"><div class="b">&#xE73E;</div><div class="l">Val</div></div>
+                    <div class="step done"><div class="b">&#xE188;</div><div class="l">Mnt</div></div>
+                    <div class="step active"><div class="b">&#xE74D;</div><div class="l">Wipe</div></div>
+                    <div class="step"><div class="b">&#xE8C8;</div><div class="l">Copy</div></div>
+                    <div class="step"><div class="b">&#xE8AC;</div><div class="l">Split</div></div>
+                    <div class="step"><div class="b">&#xE73E;</div><div class="l">Verify</div></div>
+                  </div>
+                  <div class="log">
+                    <div class="lh"><span class="gly">&#xE7C3;</span> Log · Wipe</div>
+                    <div class="line"><span class="ts">[10:44:47]</span> <span class="ok">Validated</span> ISO checksum OK</div>
+                    <div class="line"><span class="ts">[10:44:51]</span> <span class="ok">Mounted</span> ISO on M:</div>
+                    <div class="line"><span class="ts">[10:44:52]</span> Spawning elevated worker (UAC)…</div>
+                    <div class="line"><span class="ts">[10:44:55]</span> <span class="warn">Wiping</span> Disk 1 (USB DISK 3.0)…</div>
+                  </div>
+                </div>
+                <div class="actions"><div class="pill" style="background:var(--f-accent-soft);border-color:color-mix(in srgb,var(--f-accent) 35%, transparent);color:var(--f-text)">Wipe · 38%</div><div class="sp"></div><button class="btn"><span class="gly">&#xE72C;</span> Refresh</button><button class="btn">&times; Cancel</button><button class="btn primary" style="opacity:.55"><span class="gly">&#xE768;</span> Start build</button></div>
+              </div>
+            </div>
+            <div class="footer-strip c-active">
+              <span class="shield-tag"><span class="gly">&#xE7EF;</span> ELEVATED</span>
+              <span class="meta" style="margin-left:8px">Worker writing now · phase <b>Wipe</b></span>
+              <span class="sp"></span>
+              <span class="meta">Disk 1 · USB DISK 3.0 · 57.8 GB</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- =====================================================================
+     RECOMMENDATION
+     ===================================================================== -->
+<div class="recommend">
+  <div class="card-r">
+    <span class="tag">Designer's pick</span>
+    <h2>Recommend Option&nbsp;A — Prominent footer band</h2>
+    <p>
+      Option A directly honors the user's "bottom-left is nice but so hidden" feedback: it keeps the exact anchor they like, swaps the 11&nbsp;pt secondary-text label for a full-width tinted band the moment <code>IsBusy</code> flips true, and brings the most dangerous piece of context (the target drive) up next to the shield. It accomplishes the loudness the user is asking for without inventing a new affordance, without stealing focus from the phase rail/log, and without any layout reflow — the slim caption strip simply grows in place. Option&nbsp;B (chip) is too easy to mistake for a decorative pill and competes with the Log header; Option&nbsp;C (title-bar tint) is striking but expensive (involves <code>AppWindowTitleBar</code> custom theming and may visually clash on Mica/acrylic backdrops, plus the band would still be needed below to carry the target-drive context). Suggested follow-up: ship A as v1; revisit C as a v2 layered enhancement once we've validated the band reads correctly in real builds.
+    </p>
+  </div>
+</div>
+
+</body>
+</html>

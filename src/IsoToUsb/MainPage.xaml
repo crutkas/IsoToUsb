@@ -107,6 +107,7 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
                     <!-- Section: Source ISO -->
@@ -245,6 +246,32 @@
                                 Text="{x:Bind ViewModel.SetupFooterText, Mode=OneWay}" />
                         </StackPanel>
                     </Border>
+
+                    <!--
+                        Elevation attribution caption. Sits below the footer
+                        badge, always visible, tiny tertiary text. This is
+                        the SOLE static elevation notice now that the bottom
+                        bar's Row 1 has been retired — the live indicator is
+                        the shield glyph inside the status pill on the
+                        action bar.
+                    -->
+                    <StackPanel
+                        Grid.Row="5"
+                        Orientation="Horizontal"
+                        Spacing="6"
+                        Margin="2,2,0,0"
+                        VerticalAlignment="Center">
+                        <FontIcon
+                            Glyph="&#xE730;"
+                            FontSize="11"
+                            VerticalAlignment="Center"
+                            Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                        <TextBlock
+                            FontSize="11"
+                            VerticalAlignment="Center"
+                            Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                            Text="Work done with elevated worker process" />
+                    </StackPanel>
                 </Grid>
                 </Border>
             </Grid>
@@ -466,131 +493,103 @@
         </Grid>
 
         <!-- ======================== BOTTOM ACTION BAR ======================== -->
+        <!--
+            Single-row action bar. The status pill carries the live state
+            (with a shield glyph inside it when IsBusy), the ProgressBar
+            shows percent progress, and the three buttons sit on the right.
+            The old Row 1 caption strip ("asInvoker · ..." / "IsoToUsb · MIT")
+            was retired: elevation is now indicated by the pill's shield,
+            and the attribution caption lives at the bottom of the Setup
+            card instead. Net effect: half the bottom-bar height.
+        -->
         <Border
             Grid.Row="1"
             BorderBrush="{ThemeResource ControlStrongStrokeColorDefaultBrush}"
             BorderThickness="0,1,0,0"
             Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
-            <Grid Padding="18,8">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="*" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
+            <Grid Margin="18,8" ColumnSpacing="12" VerticalAlignment="Center">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
 
-                <!-- Row 0: action controls (status pill, progress, buttons) -->
-                <Grid ColumnSpacing="12" VerticalAlignment="Center">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-
-                    <!-- Status pill: canonical "Build complete" channel. -->
-                    <Border
-                        Grid.Column="0"
-                        VerticalAlignment="Center"
-                        Padding="10,3"
-                        CornerRadius="10"
-                        BorderThickness="1"
-                        Background="{x:Bind ViewModel.Status, Mode=OneWay, Converter={StaticResource StatusKindToBrushConverter}, ConverterParameter=background}"
-                        BorderBrush="{x:Bind ViewModel.Status, Mode=OneWay, Converter={StaticResource StatusKindToBrushConverter}, ConverterParameter=border}">
-                        <TextBlock
-                            FontSize="12"
-                            FontWeight="SemiBold"
-                            Text="{x:Bind ViewModel.StatusPillText, Mode=OneWay}"
-                            Foreground="{x:Bind ViewModel.Status, Mode=OneWay, Converter={StaticResource StatusKindToBrushConverter}, ConverterParameter=foreground}" />
-                    </Border>
-
-                    <ProgressBar
-                        Grid.Column="1"
-                        Height="10"
-                        HorizontalAlignment="Stretch"
-                        VerticalAlignment="Center"
-                        Margin="14,0"
-                        Minimum="0"
-                        Maximum="100"
-                        Value="{x:Bind ViewModel.ProgressPercent, Mode=OneWay}"
-                        ShowError="False"
-                        IsIndeterminate="False" />
-
-                    <StackPanel
-                        Grid.Column="2"
-                        Orientation="Horizontal"
-                        Spacing="8"
-                        VerticalAlignment="Center">
-                        <Button
-                            ToolTipService.ToolTip="Refresh drive list"
-                            IsEnabled="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource NotConverter}}"
-                            Command="{x:Bind ViewModel.RefreshDrivesCommand}">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <FontIcon Glyph="&#xE72C;" FontSize="13" />
-                                <TextBlock Text="Refresh" FontSize="13" />
-                            </StackPanel>
-                        </Button>
-                        <Button
-                            Command="{x:Bind ViewModel.CancelCommand}"
-                            IsEnabled="{x:Bind ViewModel.IsBusy, Mode=OneWay}">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <FontIcon Glyph="&#xE894;" FontSize="13" />
-                                <TextBlock Text="Cancel" FontSize="13" />
-                            </StackPanel>
-                        </Button>
-                        <Button
-                            Style="{StaticResource AccentButtonStyle}"
-                            Command="{x:Bind ViewModel.StartCommand}"
-                            IsEnabled="{x:Bind ViewModel.CanStart, Mode=OneWay}">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <FontIcon Glyph="&#xE768;" FontSize="13" />
-                                <TextBlock Text="Start build" FontSize="13" />
-                            </StackPanel>
-                        </Button>
-                    </StackPanel>
-                </Grid>
-
-                <!-- Row 1: caption strip (elevation, current op, version) -->
-                <Grid Grid.Row="1" ColumnSpacing="10" Margin="0,4,0,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-
-                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                <!-- Status pill: canonical "Build complete" channel.
+                     The shield glyph appears inline ONLY when the
+                     elevated worker is running — this is the sole
+                     elevation indicator in the action bar (Row 1's
+                     caption strip has been retired). Geometry of the
+                     pill is unchanged so nothing reflows when the
+                     glyph appears/disappears. -->
+                <Border
+                    Grid.Column="0"
+                    VerticalAlignment="Center"
+                    Padding="10,3"
+                    CornerRadius="10"
+                    BorderThickness="1"
+                    Background="{x:Bind ViewModel.Status, Mode=OneWay, Converter={StaticResource StatusKindToBrushConverter}, ConverterParameter=background}"
+                    BorderBrush="{x:Bind ViewModel.Status, Mode=OneWay, Converter={StaticResource StatusKindToBrushConverter}, ConverterParameter=border}">
+                    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                         <FontIcon
                             Glyph="&#xE730;"
                             FontSize="11"
-                            Foreground="{x:Bind ViewModel.Status, Mode=OneWay, Converter={StaticResource StatusKindToBrushConverter}, ConverterParameter=foreground}" />
-                        <TextBlock
-                            Text="Elevated worker"
-                            FontSize="11"
                             VerticalAlignment="Center"
-                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            Foreground="{x:Bind ViewModel.Status, Mode=OneWay, Converter={StaticResource StatusKindToBrushConverter}, ConverterParameter=foreground}"
+                            Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"
+                            AutomationProperties.Name="Elevated worker active" />
+                        <TextBlock
+                            FontSize="12"
+                            FontWeight="SemiBold"
+                            VerticalAlignment="Center"
+                            Text="{x:Bind ViewModel.StatusPillText, Mode=OneWay}"
+                            Foreground="{x:Bind ViewModel.Status, Mode=OneWay, Converter={StaticResource StatusKindToBrushConverter}, ConverterParameter=foreground}" />
                     </StackPanel>
+                </Border>
 
-                    <TextBlock
-                        Grid.Column="1"
-                        Text="·"
-                        FontSize="11"
-                        VerticalAlignment="Center"
-                        Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                <ProgressBar
+                    Grid.Column="1"
+                    Height="10"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Center"
+                    Margin="14,0"
+                    Minimum="0"
+                    Maximum="100"
+                    Value="{x:Bind ViewModel.ProgressPercent, Mode=OneWay}"
+                    ShowError="False"
+                    IsIndeterminate="False" />
 
-                    <TextBlock
-                        Grid.Column="2"
-                        Text="{x:Bind ViewModel.CurrentOperation, Mode=OneWay}"
-                        FontSize="11"
-                        VerticalAlignment="Center"
-                        TextTrimming="CharacterEllipsis"
-                        TextWrapping="NoWrap"
-                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-
-                    <TextBlock
-                        Grid.Column="3"
-                        Text="IsoToUsb · MIT · runs as administrator"
-                        FontSize="11"
-                        VerticalAlignment="Center"
-                        Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
-                </Grid>
+                <StackPanel
+                    Grid.Column="2"
+                    Orientation="Horizontal"
+                    Spacing="8"
+                    VerticalAlignment="Center">
+                    <Button
+                        ToolTipService.ToolTip="Refresh drive list"
+                        IsEnabled="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource NotConverter}}"
+                        Command="{x:Bind ViewModel.RefreshDrivesCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                            <FontIcon Glyph="&#xE72C;" FontSize="13" VerticalAlignment="Center" />
+                            <TextBlock Text="Refresh" FontSize="13" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                    <Button
+                        Command="{x:Bind ViewModel.CancelCommand}"
+                        IsEnabled="{x:Bind ViewModel.IsBusy, Mode=OneWay}">
+                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                            <FontIcon Glyph="&#xE894;" FontSize="13" VerticalAlignment="Center" />
+                            <TextBlock Text="Cancel" FontSize="13" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                    <Button
+                        Style="{StaticResource AccentButtonStyle}"
+                        Command="{x:Bind ViewModel.StartCommand}"
+                        IsEnabled="{x:Bind ViewModel.CanStart, Mode=OneWay}">
+                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                            <FontIcon Glyph="&#xE768;" FontSize="13" VerticalAlignment="Center" />
+                            <TextBlock Text="Start build" FontSize="13" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
             </Grid>
         </Border>
     </Grid>

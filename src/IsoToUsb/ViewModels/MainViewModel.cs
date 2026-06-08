@@ -137,7 +137,10 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(SetupFooterGlyph));
     }
 
-    partial void OnCurrentOperationChanged(string value) => OnPropertyChanged(nameof(StatusPillText));
+    partial void OnCurrentOperationChanged(string value)
+    {
+        OnPropertyChanged(nameof(StatusPillText));
+    }
 
     partial void OnProgressPercentChanged(int value) => OnPropertyChanged(nameof(StatusPillText));
 

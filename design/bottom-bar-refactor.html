@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="en" data-board-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1400">
+<title>IsoToUsb — Bottom-bar refactor (surgical)</title>
+<style>
+  /* ===== Board chrome (matches design/elevation-indicator-v1.html) ===== */
+  :root {
+    --board-bg: #ECECEC;
+    --board-card: #FFFFFF;
+    --board-text: #1B1B1B;
+    --board-sub: #5D5D5D;
+    --board-tert: #8A8A8A;
+    --board-border: rgba(0,0,0,0.08);
+    --board-border-strong: rgba(0,0,0,0.14);
+    --board-accent: #0067C0;
+  }
+  html[data-board-theme="dark"] {
+    --board-bg: #161616;
+    --board-card: #1F1F1F;
+    --board-text: #F5F5F5;
+    --board-sub: #B5B5B5;
+    --board-tert: #8A8A8A;
+    --board-border: rgba(255,255,255,0.08);
+    --board-border-strong: rgba(255,255,255,0.16);
+    --board-accent: #4CC2FF;
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--board-bg);
+    color: var(--board-text);
+    font-family: "Segoe UI Variable Display", "Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-size: 14px; line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+  }
+  .glyph { font-family: "Segoe Fluent Icons", "Segoe MDL2 Assets", sans-serif; }
+
+  .topbar {
+    position: sticky; top: 0; z-index: 50;
+    display: flex; align-items: center; gap: 24px;
+    padding: 14px 28px;
+    background: color-mix(in srgb, var(--board-card) 88%, transparent);
+    backdrop-filter: blur(18px) saturate(140%);
+    border-bottom: 1px solid var(--board-border);
+  }
+  .topbar .brand { font-weight: 600; font-size: 15px; display: flex; align-items: center; gap: 10px; }
+  .topbar .brand .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--board-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--board-accent) 22%, transparent); }
+  .topbar .spacer { flex: 1; }
+  .topbar .meta { color: var(--board-sub); font-size: 12px; }
+  .theme-toggle {
+    border: 1px solid var(--board-border); background: transparent; color: var(--board-text);
+    border-radius: 6px; padding: 6px 12px; font: inherit; font-size: 12px; font-weight: 500; cursor: pointer;
+  }
+  .theme-toggle:hover { background: var(--board-border); }
+
+  .page-intro { max-width: 1240px; margin: 32px auto 8px; padding: 0 28px; }
+  .page-intro h1 { font-size: 26px; font-weight: 600; margin: 0 0 10px; letter-spacing: -0.2px; }
+  .page-intro p { color: var(--board-sub); margin: 0 0 6px; max-width: 980px; font-size: 14px; }
+
+  .section { max-width: 1240px; margin: 36px auto 0; padding: 0 28px; }
+  .section h2 {
+    font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px;
+    color: var(--board-sub); margin: 0 0 12px;
+  }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .panel {
+    background: var(--board-card); border: 1px solid var(--board-border); border-radius: 12px;
+    padding: 16px;
+  }
+  .panel .cap {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .panel .cap .name { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: var(--board-sub); }
+  .panel .cap .theme { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: var(--board-tert); }
+
+  /* ===== Mini IsoToUsb bottom-bar scaffold ===== */
+  .stage {
+    --f-bg: #F3F3F3;
+    --f-card: #FFFFFF;
+    --f-card-2: #FAFAFA;
+    --f-stroke: rgba(0,0,0,0.0578);
+    --f-stroke-strong: rgba(0,0,0,0.12);
+    --f-text: #1B1B1B;
+    --f-sub: #5D5D5D;
+    --f-tert: #8A8A8A;
+    --f-accent: #0067C0;
+    --f-accent-soft: rgba(0,103,192,0.10);
+    --f-accent-strong: rgba(0,103,192,0.20);
+    --f-track: rgba(0,0,0,0.06);
+    background: var(--f-bg);
+    color: var(--f-text);
+    border: 1px solid var(--board-border-strong);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .stage.dark {
+    --f-bg: #202020;
+    --f-card: #2B2B2B;
+    --f-card-2: #262626;
+    --f-stroke: rgba(255,255,255,0.07);
+    --f-stroke-strong: rgba(255,255,255,0.14);
+    --f-text: #F5F5F5;
+    --f-sub: #B5B5B5;
+    --f-tert: #8A8A8A;
+    --f-accent: #4CC2FF;
+    --f-accent-soft: rgba(76,194,255,0.14);
+    --f-accent-strong: rgba(76,194,255,0.28);
+    --f-track: rgba(255,255,255,0.08);
+  }
+
+  /* The bottom bar itself, sized to the real ratios */
+  .bbar {
+    padding: 10px 14px;
+    border-top: 1px solid var(--f-stroke);
+    background: var(--f-bg);
+    display: grid;
+    row-gap: 6px;
+    column-gap: 10px;
+  }
+  .bbar.two-row { grid-template-rows: auto auto; }
+  .bbar.one-row { grid-template-rows: auto; }
+
+  /* Row 0 – status pill + progress + buttons */
+  .row0 {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    column-gap: 10px;
+    align-items: center;
+  }
+  .pill {
+    display: inline-flex; align-items: center;
+    padding: 3px 10px;
+    border-radius: 10px;
+    border: 1px solid color-mix(in srgb, var(--f-accent) 35%, transparent);
+    background: var(--f-accent-soft);
+    color: var(--f-accent);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.25;
+    white-space: nowrap;
+  }
+  .pill .shield {
+    font-family: "Segoe Fluent Icons", "Segoe MDL2 Assets", sans-serif;
+    font-size: 11px;
+    margin-right: 4px;
+    color: inherit;
+    line-height: 1;
+  }
+  .progress {
+    height: 4px; border-radius: 2px; background: var(--f-track);
+    position: relative; overflow: hidden;
+  }
+  .progress .fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--f-accent); width: 18%; }
+  .progress.indeterm .fill { width: 30%; }
+  .progress.zero .fill { width: 0; }
+
+  .actions { display: inline-flex; gap: 6px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px; border-radius: 4px;
+    border: 1px solid var(--f-stroke-strong);
+    background: var(--f-card);
+    color: var(--f-text);
+    font-size: 11px;
+  }
+  .btn .gly { font-family: "Segoe Fluent Icons", "Segoe MDL2 Assets", sans-serif; font-size: 10px; color: var(--f-sub); }
+  .btn.primary {
+    background: var(--f-accent); border-color: var(--f-accent); color: #FFFFFF;
+  }
+  .btn.primary .gly { color: #FFFFFF; }
+  .btn.disabled { opacity: 0.45; }
+
+  /* Row 1 – the strip being deleted */
+  .row1 {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    font-size: 11px;
+    color: var(--f-sub);
+  }
+  .row1 .left { display: inline-flex; align-items: center; gap: 6px; }
+  .row1 .left .gly { font-family: "Segoe Fluent Icons", "Segoe MDL2 Assets", sans-serif; font-size: 11px; color: var(--f-sub); }
+  .row1 .right { color: var(--f-tert); font-size: 11px; }
+
+  /* Strikethrough overlay for "Before → deleted" row */
+  .strike-wrap { position: relative; }
+  .strike-wrap .stamp {
+    position: absolute; top: 50%; right: 10px; transform: translateY(-50%);
+    font-size: 10px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase;
+    color: #C42B1C;
+    background: color-mix(in srgb, #C42B1C 12%, transparent);
+    border: 1px solid color-mix(in srgb, #C42B1C 35%, transparent);
+    padding: 2px 8px; border-radius: 999px;
+    pointer-events: none;
+  }
+  html[data-board-theme="dark"] .strike-wrap .stamp { color: #FF99A4; background: rgba(255,153,164,0.12); border-color: rgba(255,153,164,0.35); }
+  .strike-wrap .row1 { opacity: 0.35; text-decoration: line-through; text-decoration-color: currentColor; }
+
+  /* ===== Zoomed pill comparison ===== */
+  .zoom-pills {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
+  }
+  .zoom-pill-cell {
+    padding: 28px 20px;
+    background: var(--f-bg);
+    border-radius: 8px;
+    border: 1px dashed var(--f-stroke-strong);
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+  }
+  .zoom-pill-cell .lbl {
+    font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: var(--f-sub);
+  }
+  .zoom-pill-cell .pill.big {
+    transform: scale(2);
+    transform-origin: center;
+    margin: 14px 0;
+  }
+
+  /* ===== Setup-card footer zoom ===== */
+  .setup-zoom {
+    background: var(--f-bg);
+    padding: 18px;
+    border-radius: 8px;
+    border: 1px dashed var(--f-stroke-strong);
+  }
+  .setup-card {
+    background: var(--f-card);
+    border: 1px solid var(--f-stroke);
+    border-radius: 7px;
+    padding: 12px;
+    max-width: 320px;
+  }
+  .setup-card .h {
+    font-size: 10px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase;
+    color: var(--f-sub); margin: 0 0 8px;
+  }
+  .setup-card .ghost-line {
+    height: 8px; border-radius: 3px; background: var(--f-track); margin: 4px 0;
+  }
+  .setup-card .ghost-line.w70 { width: 70%; }
+  .setup-card .ghost-line.w55 { width: 55%; }
+  .setup-card .ghost-line.w40 { width: 40%; }
+  .setup-card .gap { height: 16px; }
+  .badge-footer {
+    margin-top: 14px;
+    min-height: 36px;
+    padding: 7px 10px;
+    border-radius: 5px;
+    background: var(--f-card-2);
+    border: 1px solid var(--f-stroke);
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; color: var(--f-text);
+  }
+  .badge-footer .gly { font-family: "Segoe Fluent Icons", "Segoe MDL2 Assets", sans-serif; font-size: 14px; color: #C04C00; }
+  html[data-board-theme="dark"] .stage.dark .badge-footer .gly { color: #FFB454; }
+  /* The NEW caption */
+  .elev-caption {
+    margin-top: 6px;
+    padding: 0 4px;
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11px;
+    color: var(--f-tert);
+  }
+  .elev-caption .gly {
+    font-family: "Segoe Fluent Icons", "Segoe MDL2 Assets", sans-serif;
+    font-size: 11px;
+    color: var(--f-tert);
+    line-height: 1;
+  }
+
+  .anno {
+    margin-top: 10px;
+    font-size: 11px;
+    color: var(--board-sub);
+    line-height: 1.5;
+  }
+  .anno code {
+    background: var(--board-border);
+    border-radius: 3px; padding: 0 4px;
+    font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+    font-size: 10.5px;
+    color: var(--board-text);
+  }
+
+  footer.spacer-foot { height: 60px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand"><span class="dot"></span> IsoToUsb · Designer</div>
+  <div class="spacer"></div>
+  <div class="meta">bottom-bar-refactor · surgical</div>
+  <button class="theme-toggle" id="themeToggle">Toggle theme</button>
+</div>
+
+<div class="page-intro">
+  <h1>Bottom-bar refactor</h1>
+  <p>Three surgical changes per @crutkas: (1) the bottom-right <em>“IsoToUsb · MIT”</em> caption is removed, (2) the status pill on the left gains a small shield glyph prefix only while <code>IsBusy</code> is true, and (3) a tiny tertiary caption — <em>“Work done with elevated worker process”</em> — sits below the existing Setup-card footer badge.</p>
+  <p>Net result: the bottom bar collapses from two rows to one, and elevation context moves into the pill (during work) and the Setup card (always-on attribution).</p>
+</div>
+
+<!-- ============================================================
+     1. Before / After bottom-bar comparison
+     ============================================================ -->
+<div class="section">
+  <h2>1 · Bottom bar — before vs. after</h2>
+  <div class="pair">
+
+    <!-- BEFORE (light) -->
+    <div class="panel">
+      <div class="cap">
+        <span class="name">Before · current 2-row strip</span>
+        <span class="theme">Light</span>
+      </div>
+      <div class="stage">
+        <div class="bbar two-row strike-wrap">
+          <div class="row0">
+            <div class="pill">Cancelled</div>
+            <div class="progress zero"><div class="fill"></div></div>
+            <div class="actions">
+              <span class="btn"><span class="gly">&#xE72C;</span>Refresh</span>
+              <span class="btn"><span class="gly">&#xE711;</span>Cancel</span>
+              <span class="btn primary"><span class="gly">&#xE768;</span>Start build</span>
+            </div>
+          </div>
+          <div class="row1">
+            <div class="left"><span class="gly">&#xE730;</span> asInvoker · worker will elevate on <b style="color:var(--f-text)">Start</b></div>
+            <div class="right">IsoToUsb · MIT</div>
+          </div>
+          <div class="stamp">Row 1 — deleted</div>
+        </div>
+      </div>
+      <div class="anno">Two-row layout. The lower strip carries a left-side elevation hint and right-side attribution. Both go away.</div>
+    </div>
+
+    <!-- AFTER · idle (light) -->
+    <div class="panel">
+      <div class="cap">
+        <span class="name">After · 1 row · idle</span>
+        <span class="theme">Light</span>
+      </div>
+      <div class="stage">
+        <div class="bbar one-row">
+          <div class="row0">
+            <div class="pill">Ready</div>
+            <div class="progress zero"><div class="fill"></div></div>
+            <div class="actions">
+              <span class="btn"><span class="gly">&#xE72C;</span>Refresh</span>
+              <span class="btn disabled"><span class="gly">&#xE711;</span>Cancel</span>
+              <span class="btn primary"><span class="gly">&#xE768;</span>Start build</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="anno">Idle: pill shows status text only — no shield. Single row, no attribution caption.</div>
+    </div>
+
+    <!-- AFTER · active (light) -->
+    <div class="panel" style="grid-column: 1 / -1">
+      <div class="cap">
+        <span class="name">After · 1 row · active (<code style="font-size:10.5px">IsBusy = true</code>)</span>
+        <span class="theme">Light</span>
+      </div>
+      <div class="stage">
+        <div class="bbar one-row">
+          <div class="row0">
+            <div class="pill"><span class="shield">&#xE730;</span>Copying · 60%</div>
+            <div class="progress"><div class="fill" style="width:60%"></div></div>
+            <div class="actions">
+              <span class="btn disabled"><span class="gly">&#xE72C;</span>Refresh</span>
+              <span class="btn"><span class="gly">&#xE711;</span>Cancel</span>
+              <span class="btn primary disabled"><span class="gly">&#xE768;</span>Start build</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="anno">Active: shield glyph <code>&amp;#xE730;</code> prefixes the existing pill text at 11pt with a 4px right-margin, inheriting the pill foreground — no new colors, no size change to the pill.</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================
+     2. Bottom bar — dark theme pair
+     ============================================================ -->
+<div class="section">
+  <h2>2 · Bottom bar — dark theme</h2>
+  <div class="pair">
+
+    <div class="panel">
+      <div class="cap">
+        <span class="name">After · 1 row · idle</span>
+        <span class="theme">Dark</span>
+      </div>
+      <div class="stage dark">
+        <div class="bbar one-row">
+          <div class="row0">
+            <div class="pill">Ready</div>
+            <div class="progress zero"><div class="fill"></div></div>
+            <div class="actions">
+              <span class="btn"><span class="gly">&#xE72C;</span>Refresh</span>
+              <span class="btn disabled"><span class="gly">&#xE711;</span>Cancel</span>
+              <span class="btn primary"><span class="gly">&#xE768;</span>Start build</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="cap">
+        <span class="name">After · 1 row · active</span>
+        <span class="theme">Dark</span>
+      </div>
+      <div class="stage dark">
+        <div class="bbar one-row">
+          <div class="row0">
+            <div class="pill"><span class="shield">&#xE730;</span>Copying · 60%</div>
+            <div class="progress"><div class="fill" style="width:60%"></div></div>
+            <div class="actions">
+              <span class="btn disabled"><span class="gly">&#xE72C;</span>Refresh</span>
+              <span class="btn"><span class="gly">&#xE711;</span>Cancel</span>
+              <span class="btn primary disabled"><span class="gly">&#xE768;</span>Start build</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================
+     3. Zoomed pill — idle vs. active
+     ============================================================ -->
+<div class="section">
+  <h2>3 · Pill close-up — idle vs. active</h2>
+  <div class="pair">
+
+    <div class="panel">
+      <div class="cap">
+        <span class="name">Pill · 2× zoom</span>
+        <span class="theme">Light</span>
+      </div>
+      <div class="stage">
+        <div class="zoom-pills" style="padding: 12px">
+          <div class="zoom-pill-cell">
+            <span class="lbl">Idle</span>
+            <span class="pill big">Ready</span>
+            <span class="lbl" style="color:var(--f-tert); font-weight: 500; text-transform: none; letter-spacing: 0">No shield prefix</span>
+          </div>
+          <div class="zoom-pill-cell">
+            <span class="lbl">Active</span>
+            <span class="pill big"><span class="shield">&#xE730;</span>Copying · 60%</span>
+            <span class="lbl" style="color:var(--f-tert); font-weight: 500; text-transform: none; letter-spacing: 0">Shield prefix while IsBusy</span>
+          </div>
+        </div>
+      </div>
+      <div class="anno">Same pill geometry (10×3 padding, 10px radius, 12pt SemiBold). The shield is a single 11pt FontIcon prefixed inside the pill with a 4px right-margin and <code>Foreground="{Binding ElementName=PillText, Path=Foreground}"</code> — fully inheriting the accent-tinted brush from <code>StatusKindToBrushConverter</code>.</div>
+    </div>
+
+    <div class="panel">
+      <div class="cap">
+        <span class="name">Pill · 2× zoom</span>
+        <span class="theme">Dark</span>
+      </div>
+      <div class="stage dark">
+        <div class="zoom-pills" style="padding: 12px">
+          <div class="zoom-pill-cell">
+            <span class="lbl">Idle</span>
+            <span class="pill big">Ready</span>
+            <span class="lbl" style="color:var(--f-tert); font-weight: 500; text-transform: none; letter-spacing: 0">No shield prefix</span>
+          </div>
+          <div class="zoom-pill-cell">
+            <span class="lbl">Active</span>
+            <span class="pill big"><span class="shield">&#xE730;</span>Copying · 60%</span>
+            <span class="lbl" style="color:var(--f-tert); font-weight: 500; text-transform: none; letter-spacing: 0">Shield prefix while IsBusy</span>
+          </div>
+        </div>
+      </div>
+      <div class="anno">In dark theme the accent inherits the existing pill foreground — nothing else changes.</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================
+     4. Setup-card footer zoom — badge + new caption below
+     ============================================================ -->
+<div class="section">
+  <h2>4 · Setup-card footer — existing badge + new attribution caption</h2>
+  <div class="pair">
+
+    <div class="panel">
+      <div class="cap">
+        <span class="name">Left card footer (zoom)</span>
+        <span class="theme">Light</span>
+      </div>
+      <div class="stage">
+        <div class="setup-zoom">
+          <div class="setup-card">
+            <div class="h">Defaults</div>
+            <div class="ghost-line w70"></div>
+            <div class="ghost-line w55"></div>
+            <div class="ghost-line w40"></div>
+            <div class="gap"></div>
+            <!-- existing footer badge (Grid.Row=4) -->
+            <div class="badge-footer">
+              <span class="gly">&#xE7BA;</span>
+              <span>Finished with warnings — see log on the right</span>
+            </div>
+            <!-- NEW caption sits directly below the badge -->
+            <div class="elev-caption">
+              <span class="gly">&#xE730;</span>
+              <span>Work done with elevated worker process</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="anno">The existing footer badge (warnings/errors/result) is unchanged. The new caption is a plain <code>TextBlock</code> with a leading <code>FontIcon</code>, both at ~11pt using <code>TextFillColorTertiaryBrush</code>. Always visible.</div>
+    </div>
+
+    <div class="panel">
+      <div class="cap">
+        <span class="name">Left card footer (zoom)</span>
+        <span class="theme">Dark</span>
+      </div>
+      <div class="stage dark">
+        <div class="setup-zoom">
+          <div class="setup-card">
+            <div class="h">Defaults</div>
+            <div class="ghost-line w70"></div>
+            <div class="ghost-line w55"></div>
+            <div class="ghost-line w40"></div>
+            <div class="gap"></div>
+            <div class="badge-footer">
+              <span class="gly">&#xE7BA;</span>
+              <span>Finished with warnings — see log on the right</span>
+            </div>
+            <div class="elev-caption">
+              <span class="gly">&#xE730;</span>
+              <span>Work done with elevated worker process</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="anno">Identical structure in dark theme — tertiary text brush adapts automatically.</div>
+    </div>
+
+  </div>
+</div>
+
+<footer class="spacer-foot"></footer>
+
+<script>
+  const root = document.documentElement;
+  document.getElementById('themeToggle').addEventListener('click', () => {
+    root.dataset.boardTheme = root.dataset.boardTheme === 'dark' ? 'light' : 'dark';
+  });
+</script>
+
+</body>
+</html>
