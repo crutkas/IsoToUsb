@@ -8,7 +8,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  test:
+    name: Build & test
     runs-on: windows-latest
 
     steps:
@@ -35,12 +36,31 @@ jobs:
       - name: Test
         run: dotnet test src/IsoToUsb.Tests/IsoToUsb.Tests.csproj -c Release --no-build --nologo
 
-      - name: Publish (win-x64, NativeAOT, self-contained)
-        run: dotnet publish src/IsoToUsb/IsoToUsb.csproj -c Release -p:PublishProfile=win-x64
+  publish:
+    name: Publish (${{ matrix.rid }})
+    needs: test
+    runs-on: windows-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        rid: [win-x64, win-arm64]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup .NET (pinned via global.json)
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Publish (${{ matrix.rid }}, self-contained, single-file Brotli)
+        run: dotnet publish src/IsoToUsb/IsoToUsb.csproj -c Release -p:PublishProfile=${{ matrix.rid }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
-          name: IsoToUsb-win-x64
-          path: src/IsoToUsb/bin/Release/net10.0-windows10.0.26100.0/win-x64/publish/
+          name: IsoToUsb-${{ matrix.rid }}
+          path: src/IsoToUsb/bin/Release/net10.0-windows10.0.26100.0/${{ matrix.rid }}/publish/
           if-no-files-found: error
