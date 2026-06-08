@@ -9,7 +9,7 @@ using System.Numerics;
 namespace IsoToUsb.Converters;
 
 /// <summary>Inverts a boolean for binding.</summary>
-public sealed class NotConverter : IValueConverter
+public sealed partial class NotConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)
         => value is bool b ? !b : true;
@@ -19,7 +19,7 @@ public sealed class NotConverter : IValueConverter
 
 /// <summary>Maps <c>true</c> -> <see cref="Visibility.Visible"/>, <c>false</c> -> <see cref="Visibility.Collapsed"/>.
 /// Required because <c>x:Bind</c> does not auto-coerce <see cref="bool"/> to <see cref="Visibility"/>.</summary>
-public sealed class BoolToVisibilityConverter : IValueConverter
+public sealed partial class BoolToVisibilityConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)
         => (value is bool b && b) ? Visibility.Visible : Visibility.Collapsed;
@@ -28,7 +28,7 @@ public sealed class BoolToVisibilityConverter : IValueConverter
 }
 
 /// <summary>Maps <c>true</c> -> <see cref="Visibility.Collapsed"/>, <c>false</c> -> <see cref="Visibility.Visible"/>.</summary>
-public sealed class InvertedBoolToVisibilityConverter : IValueConverter
+public sealed partial class InvertedBoolToVisibilityConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)
         => (value is bool b && b) ? Visibility.Collapsed : Visibility.Visible;
@@ -37,7 +37,7 @@ public sealed class InvertedBoolToVisibilityConverter : IValueConverter
 }
 
 /// <summary>Maps <c>null</c>/empty strings to <see cref="Visibility.Collapsed"/>, otherwise <see cref="Visibility.Visible"/>.</summary>
-public sealed class NullToCollapsedConverter : IValueConverter
+public sealed partial class NullToCollapsedConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)
     {
@@ -54,7 +54,7 @@ public sealed class NullToCollapsedConverter : IValueConverter
 /// done = system accent green, failed = red, skipped = muted, otherwise the
 /// default text color. Used by the phase-tracker FontIcon glyph.
 /// </summary>
-public sealed class PhaseStatusToBrushConverter : IValueConverter
+public sealed partial class PhaseStatusToBrushConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)
     {
@@ -79,7 +79,7 @@ public sealed class PhaseStatusToBrushConverter : IValueConverter
 /// the phase title (Running renders in accent so the currently active row
 /// reads as the focal point).
 /// </summary>
-public sealed class PhaseStatusToTitleBrushConverter : IValueConverter
+public sealed partial class PhaseStatusToTitleBrushConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)
     {
@@ -106,7 +106,7 @@ public sealed class PhaseStatusToTitleBrushConverter : IValueConverter
 /// <c>foreground</c>) to return for a given <see cref="StatusKind"/> —
 /// keeping all of the pill's chromatic logic in one place.
 /// </summary>
-public sealed class StatusKindToBrushConverter : IValueConverter
+public sealed partial class StatusKindToBrushConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)
     {
@@ -158,7 +158,7 @@ public sealed class StatusKindToBrushConverter : IValueConverter
 /// the colours stay theme-aware. Falls back to a hardcoded value if a
 /// resource is missing (e.g. in the XAML designer).
 /// </summary>
-public sealed class LogSeverityToBrushConverter : IValueConverter
+public sealed partial class LogSeverityToBrushConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)
     {
@@ -196,7 +196,7 @@ public sealed class LogSeverityToBrushConverter : IValueConverter
 /// the rail nodes effectively disappear because their fills are already
 /// alpha ~13% — and opacities compound.
 /// </summary>
-public sealed class BoolToFocalOpacityConverter : IValueConverter
+public sealed partial class BoolToFocalOpacityConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)
         => (value is bool b && b) ? 1.0 : 0.82;
@@ -211,7 +211,7 @@ public sealed class BoolToFocalOpacityConverter : IValueConverter
 /// so WinUI's composition shadow draws a soft drop shadow underneath. The
 /// small -3 on Y matches the design's <c>--y: -5px</c> for "lifted".
 /// </summary>
-public sealed class BoolToFocalTranslationConverter : IValueConverter
+public sealed partial class BoolToFocalTranslationConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)
         => (value is bool b && b) ? new Vector3(0, -3, 32) : Vector3.Zero;
@@ -224,7 +224,7 @@ public sealed class BoolToFocalTranslationConverter : IValueConverter
 /// stroke, inactive cards get the neutral card stroke. Drives the
 /// "this card is in front" reading.
 /// </summary>
-public sealed class BoolToFocalBorderBrushConverter : IValueConverter
+public sealed partial class BoolToFocalBorderBrushConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)
     {
@@ -263,7 +263,7 @@ public sealed class BoolToFocalBorderBrushConverter : IValueConverter
 /// Inactive: a slightly washed-out secondary fill so the dimming reads
 /// without making the card look broken.
 /// </summary>
-public sealed class BoolToFocalBackgroundConverter : IValueConverter
+public sealed partial class BoolToFocalBackgroundConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)
     {
@@ -286,7 +286,7 @@ public sealed class BoolToFocalBackgroundConverter : IValueConverter
 /// <c>node-border</c>, <c>node-foreground</c>, or <c>label-foreground</c>),
 /// and the value (<see cref="PhaseStatus"/>) selects the state.
 /// </summary>
-public sealed class PhaseStatusToRailBrushConverter : IValueConverter
+public sealed partial class PhaseStatusToRailBrushConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)
     {
