@@ -75,19 +75,24 @@ public sealed class UsbBuildPipeline
         {
             throw new FileNotFoundException("ISO not found.", isoPath);
         }
+        var isoBytes = new FileInfo(isoPath).Length;
+        progress?.Report(new PipelineProgress(
+            PipelineStage.ValidateInputs,
+            100,
+            $"OK · ISO {FormatMb(isoBytes)}, target {targetDisk.FriendlyName} ({targetDisk.SizeDisplay})"));
 
         cancellationToken.ThrowIfCancellationRequested();
         progress?.Report(new PipelineProgress(PipelineStage.MountIso, 0, $"Mounting '{Path.GetFileName(isoPath)}'..."));
         using var mounted = IsoMounter.Mount(isoPath);
         IsoContentValidator.EnsureWindowsInstallIso(mounted.MountRoot);
-        progress?.Report(new PipelineProgress(PipelineStage.MountIso, 100, $"Mounted at {mounted.MountRoot}"));
+        progress?.Report(new PipelineProgress(PipelineStage.MountIso, 100, $"Mounted at {mounted.MountRoot} · recognized as a Windows installer"));
 
         // Pre-flight scan: classify every file on the ISO before doing
         // anything destructive. If any file is too large for FAT32 and
         // cannot be DISM-split, abort BEFORE the wipe so the user keeps
         // their data on the USB stick.
         cancellationToken.ThrowIfCancellationRequested();
-        var rejected = ScanForFat32Rejects(mounted.MountRoot);
+        var (rejected, scanFileCount, scanTotalBytes, scanSplitBytes, scanSplitCount) = ScanForFat32Rejects(mounted.MountRoot);
         if (rejected.Count > 0)
         {
             var first = rejected[0];
@@ -96,18 +101,35 @@ public sealed class UsbBuildPipeline
                 $"First offender: '{first.RelativePath}' ({first.SizeBytes:N0} bytes). " +
                 $"IsoToUsb only writes FAT32 USBs, so this image isn't supported.");
         }
+        progress?.Report(new PipelineProgress(
+            PipelineStage.MountIso,
+            100,
+            scanSplitCount > 0
+                ? $"Pre-flight OK · {scanFileCount} files, {FormatMb(scanTotalBytes)} total ({scanSplitCount} oversize WIM/ESD will be split, {FormatMb(scanSplitBytes)})"
+                : $"Pre-flight OK · {scanFileCount} files, {FormatMb(scanTotalBytes)} total, no oversize files"));
 
         cancellationToken.ThrowIfCancellationRequested();
         progress?.Report(new PipelineProgress(PipelineStage.Repartition, 0, $"Wiping and repartitioning {targetDisk.FriendlyName}..."));
         var usbRoot = Partitioner.Repartition(targetDisk);
-        progress?.Report(new PipelineProgress(PipelineStage.Repartition, 100, $"Created FAT32 partition at {usbRoot}"));
+        progress?.Report(new PipelineProgress(PipelineStage.Repartition, 100, $"OK · GPT initialized, FAT32 partition created at {usbRoot}"));
 
         cancellationToken.ThrowIfCancellationRequested();
         progress?.Report(new PipelineProgress(PipelineStage.CopyFiles, 0, "Copying ISO contents..."));
         var copier = new FileCopier { SkipPredicate = (file, rel) => FileCopier.ShouldSplitForFat32(file, rel) };
         var copyGate = new HeartbeatGate(LogByteGate);
+        // Captured from the last progress tick so the end-of-stage summary
+        // can report totals (files copied, bytes copied) without having to
+        // re-walk the destination directory.
+        long lastBytesDone = 0;
+        long lastBytesTotal = 0;
+        int lastFilesDone = 0;
+        int lastFilesTotal = 0;
         var copyProgress = new Progress<CopyProgress>(p =>
         {
+            lastBytesDone = p.BytesDone;
+            lastBytesTotal = p.BytesTotal;
+            lastFilesDone = p.FilesDone;
+            lastFilesTotal = p.FilesTotal;
             var pct = p.BytesTotal > 0 ? (int)(p.BytesDone * 100 / p.BytesTotal) : 0;
             // 1-based "currently working on file X of N" — much friendlier
             // than "0/N done" while the first file is mid-stream.
@@ -133,6 +155,12 @@ public sealed class UsbBuildPipeline
                 isHeartbeat));
         });
         var skipped = await copier.CopyAsync(mounted.MountRoot, usbRoot, copyProgress, cancellationToken).ConfigureAwait(false);
+        progress?.Report(new PipelineProgress(
+            PipelineStage.CopyFiles,
+            100,
+            skipped.Count > 0
+                ? $"OK · {lastFilesTotal} files copied ({FormatMb(lastBytesDone)}), {skipped.Count} oversize file(s) deferred to Split stage"
+                : $"OK · {lastFilesTotal} files copied ({FormatMb(lastBytesDone)})"));
 
         if (skipped.Count > 0)
         {
@@ -245,6 +273,17 @@ public sealed class UsbBuildPipeline
                     // This is the only chance we get to detect that BEFORE
                     // Windows Setup detonates with 0x8007000D mid-install.
                     VerifyAllSwmChunksLanded(tempRoot, finalDestDir, rel);
+
+                    // Per-WIM end-of-stage summary so the log has a clear
+                    // "we did the thing" boundary for each split. Without
+                    // this the user sees a flood of copy ticks and no
+                    // confirmation that this particular WIM finished
+                    // before the next one starts (or before Verify runs).
+                    var chunkCount = Directory.EnumerateFiles(finalDestDir, swmBase.Replace(".swm", "*.swm")).Count();
+                    progress?.Report(new PipelineProgress(
+                        PipelineStage.SplitInstallWim,
+                        100,
+                        $"OK · {rel} split into {chunkCount} SWM chunks ({FormatMb(sourceBytes)}) and copied to USB"));
                 }
                 finally
                 {
@@ -259,18 +298,54 @@ public sealed class UsbBuildPipeline
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        progress?.Report(new PipelineProgress(PipelineStage.Verify, 0, $"Verifying {Verifier.SampleSize} random files..."));
+        progress?.Report(new PipelineProgress(PipelineStage.Verify, 0, $"Spot-checking {Verifier.SampleSize} random files (SHA-256)..."));
+        // Track running counts so the log shows progress *during* verify
+        // ("3/16 verified") and the end summary has accurate totals
+        // without re-walking the disk. Random.Shared captured inside the
+        // verifier; we just observe the results as they land.
+        int verifiedSoFar = 0;
+        long verifiedBytes = 0;
+        var verifyProgress = new Progress<VerificationResult>(r =>
+        {
+            Interlocked.Increment(ref verifiedSoFar);
+            long size = 0;
+            try
+            {
+                size = new FileInfo(Path.Combine(usbRoot, r.RelativePath)).Length;
+                Interlocked.Add(ref verifiedBytes, size);
+            }
+            catch
+            {
+                // Best-effort size lookup; verify result is still authoritative.
+            }
+            var sizeText = size > 0 ? $" ({FormatMb(size)})" : string.Empty;
+            var status = r.Match ? "OK" : $"MISMATCH — {r.Reason}";
+            // Percent is approximate (we don't know SampleSize bound vs.
+            // candidate count up front for tiny ISOs), but bounded to 99
+            // so the bar doesn't snap to full before the summary lands.
+            var pct = Math.Min(99, (int)(verifiedSoFar * 100L / Math.Max(Verifier.SampleSize, 1)));
+            progress?.Report(new PipelineProgress(
+                PipelineStage.Verify,
+                pct,
+                $"{verifiedSoFar} {r.RelativePath}{sizeText} · {status}"));
+        });
         var verificationResults = await Verifier
-            .VerifyAsync(mounted.MountRoot, usbRoot, skipped, cancellationToken)
+            .VerifyAsync(mounted.MountRoot, usbRoot, skipped, verifyProgress, cancellationToken)
             .ConfigureAwait(false);
         var failures = verificationResults.Count(r => !r.Match);
         if (failures > 0)
         {
-            progress?.Report(new PipelineProgress(PipelineStage.Verify, 100, $"WARNING: {failures} file(s) mismatched."));
+            progress?.Report(new PipelineProgress(
+                PipelineStage.Verify,
+                100,
+                $"WARNING · {failures}/{verificationResults.Count} file(s) mismatched ({FormatMb(verifiedBytes)} sampled)"));
         }
         else
         {
-            progress?.Report(new PipelineProgress(PipelineStage.Verify, 100, "All sampled files match."));
+            progress?.Report(new PipelineProgress(
+                PipelineStage.Verify,
+                100,
+                $"OK · {verificationResults.Count}/{verificationResults.Count} files match ({FormatMb(verifiedBytes)} sampled)"));
         }
 
         progress?.Report(new PipelineProgress(PipelineStage.Done, 100, "USB build complete."));
@@ -413,21 +488,59 @@ public sealed class UsbBuildPipeline
     /// <summary>
     /// Walks the mounted ISO looking for files that exceed FAT32's per-file
     /// limit and aren't split-capable WIM/ESD/SWM images. Returns each one
-    /// so the pipeline can surface a clear pre-wipe error.
+    /// so the pipeline can surface a clear pre-wipe error, alongside
+    /// aggregate stats (file count, total bytes, split-bytes summary) that
+    /// drive the "Pre-flight OK" log line so the user can see at a glance
+    /// what's about to be written.
     /// </summary>
-    private static IReadOnlyList<RejectedFile> ScanForFat32Rejects(string mountRoot)
+    private static (IReadOnlyList<RejectedFile> Rejected, int FileCount, long TotalBytes, long SplitBytes, int SplitCount) ScanForFat32Rejects(string mountRoot)
     {
         var rejects = new List<RejectedFile>();
+        int fileCount = 0;
+        long totalBytes = 0;
+        long splitBytes = 0;
+        int splitCount = 0;
         var root = new DirectoryInfo(mountRoot);
         foreach (var f in root.EnumerateFiles("*", SearchOption.AllDirectories))
         {
+            fileCount++;
+            totalBytes += f.Length;
             var rel = Path.GetRelativePath(mountRoot, f.FullName);
-            if (FileCopier.ClassifyForFat32(f, rel) == Fat32FileAction.Reject)
+            var classification = FileCopier.ClassifyForFat32(f, rel);
+            if (classification == Fat32FileAction.Reject)
             {
                 rejects.Add(new RejectedFile(rel, f.Length));
             }
+            else if (FileCopier.ShouldSplitForFat32(f, rel))
+            {
+                splitCount++;
+                splitBytes += f.Length;
+            }
         }
-        return rejects;
+        return (rejects, fileCount, totalBytes, splitBytes, splitCount);
+    }
+
+    /// <summary>
+    /// Format a byte count as a human-friendly "X.X MB" / "X.X GB" string
+    /// for log lines. Uses binary (1024-based) units to match the
+    /// in-progress MB readouts so the end-of-stage summary lines up with
+    /// the running totals the user just watched scroll by.
+    /// </summary>
+    internal static string FormatMb(long bytes)
+    {
+        if (bytes >= 1024L * 1024 * 1024)
+        {
+            return $"{bytes / (1024.0 * 1024 * 1024):N2} GB";
+        }
+        if (bytes >= 1024 * 1024)
+        {
+            return $"{bytes / (1024.0 * 1024):N0} MB";
+        }
+        if (bytes >= 1024)
+        {
+            return $"{bytes / 1024.0:N0} KB";
+        }
+        return $"{bytes:N0} B";
     }
 
     /// <summary>

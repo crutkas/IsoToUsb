@@ -19,10 +19,17 @@ public sealed class SampleVerifier
     /// Pick up to <see cref="SampleSize"/> files (excluding
     /// <paramref name="skipRelativePaths"/>), hash both copies, return results.
     /// </summary>
+    /// <param name="progress">
+    /// Optional per-file callback fired after each file's source+destination
+    /// hashes have been compared. Lets the pipeline log "verified X" lines
+    /// in real time instead of reporting only a single "all match" summary
+    /// after every file has been hashed.
+    /// </param>
     public async Task<IReadOnlyList<VerificationResult>> VerifyAsync(
         string sourceRoot,
         string destinationRoot,
         IEnumerable<string>? skipRelativePaths = null,
+        IProgress<VerificationResult>? progress = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceRoot);
@@ -56,16 +63,20 @@ public sealed class SampleVerifier
             var srcPath = Path.Combine(sourceRoot, rel);
             var dstPath = Path.Combine(destinationRoot, rel);
 
+            VerificationResult result;
             if (!File.Exists(dstPath))
             {
-                results.Add(new VerificationResult(rel, false, "Missing on destination."));
-                continue;
+                result = new VerificationResult(rel, false, "Missing on destination.");
             }
-
-            var srcHash = await HashAsync(srcPath, cancellationToken).ConfigureAwait(false);
-            var dstHash = await HashAsync(dstPath, cancellationToken).ConfigureAwait(false);
-            var match = srcHash.AsSpan().SequenceEqual(dstHash);
-            results.Add(new VerificationResult(rel, match, match ? null : "SHA-256 mismatch."));
+            else
+            {
+                var srcHash = await HashAsync(srcPath, cancellationToken).ConfigureAwait(false);
+                var dstHash = await HashAsync(dstPath, cancellationToken).ConfigureAwait(false);
+                var match = srcHash.AsSpan().SequenceEqual(dstHash);
+                result = new VerificationResult(rel, match, match ? null : "SHA-256 mismatch.");
+            }
+            results.Add(result);
+            progress?.Report(result);
         }
         return results;
     }
