@@ -1,6 +1,6 @@
 using System.Diagnostics;
-using System.Management;
 using System.Text;
+using IsoToUsb.Services.Internal;
 
 namespace IsoToUsb.Services;
 
@@ -16,7 +16,6 @@ namespace IsoToUsb.Services;
 /// </summary>
 public sealed class DiskPartitioner
 {
-    private const string StorageScope = @"\\.\ROOT\Microsoft\Windows\Storage";
     public const string DefaultVolumeLabel = "WIN_USB";
 
     /// <summary>
@@ -57,10 +56,7 @@ public sealed class DiskPartitioner
 
         RunDiskpartScript(disk.Number, disk.SizeBytes, volumeLabel);
 
-        var scope = new ManagementScope(StorageScope);
-        scope.Connect();
-
-        var letter = WaitForVolumeLetter(scope, disk.Number, TimeSpan.FromSeconds(30));
+        var letter = WaitForVolumeLetter(disk.Number, TimeSpan.FromSeconds(30));
         return $"{letter}:\\";
     }
 
@@ -183,35 +179,14 @@ public sealed class DiskPartitioner
             $"diskpart exited with code {exitCode}.\nOutput:\n{combined}");
     }
 
-    private static char WaitForVolumeLetter(ManagementScope scope, uint diskNumber, TimeSpan timeout)
+    private static char WaitForVolumeLetter(uint diskNumber, TimeSpan timeout)
     {
         var deadline = DateTime.UtcNow + timeout;
-        var query = new ObjectQuery(
-            $"SELECT DriveLetter FROM MSFT_Partition WHERE DiskNumber = {diskNumber.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
-
-        while (DateTime.UtcNow < deadline)
+        var letter = Win32Storage.WaitForDriveLetter(diskNumber, deadline);
+        if (letter is not null)
         {
-            using (var searcher = new ManagementObjectSearcher(scope, query))
-            {
-                foreach (var item in searcher.Get())
-                {
-                    var dl = item["DriveLetter"];
-                    var ch = dl switch
-                    {
-                        char c => c,
-                        ushort u => (char)u,
-                        byte b => (char)b,
-                        _ => '\0',
-                    };
-                    if (ch >= 'A' && ch <= 'Z')
-                    {
-                        return ch;
-                    }
-                }
-            }
-            Thread.Sleep(500);
+            return letter.Value;
         }
-
         throw new InvalidOperationException(
             $"Timed out waiting for a drive letter on disk {diskNumber}. " +
             "diskpart reported success but no mounted volume appeared.");

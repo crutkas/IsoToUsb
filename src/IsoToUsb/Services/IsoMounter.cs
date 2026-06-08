@@ -1,6 +1,6 @@
 using System.ComponentModel;
-using System.Management;
 using System.Runtime.InteropServices;
+using IsoToUsb.Services.Internal;
 using Microsoft.Win32.SafeHandles;
 using Windows.Win32;
 using Windows.Win32.Foundation;
@@ -139,9 +139,9 @@ public static class IsoMounter
 
     /// <summary>
     /// Asks virtdisk for the physical drive path of the attached ISO
-    /// (<c>\\.\PhysicalDriveN</c>), then walks <c>MSFT_Partition</c> to find
-    /// the first partition's drive letter. This binds the result to the disk
-    /// we just attached, not to whichever drive happened to appear during a
+    /// (<c>\\.\PhysicalDriveN</c>), then polls the volume table for a drive
+    /// letter assigned to that disk. This binds the result to the disk we
+    /// just attached, not to whichever drive happened to appear during a
     /// race window. Returns <c>null</c> if virtdisk can't yet produce a
     /// physical path or no partition has a letter assigned within the
     /// deadline.
@@ -161,44 +161,8 @@ public static class IsoMounter
             return null;
         }
 
-        try
-        {
-            var scope = new ManagementScope(@"\\.\ROOT\Microsoft\Windows\Storage");
-            var query = new ObjectQuery(
-                $"SELECT DriveLetter FROM MSFT_Partition WHERE DiskNumber = {diskNumber.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
-            while (DateTime.UtcNow < deadline)
-            {
-                using (var searcher = new ManagementObjectSearcher(scope, query))
-                using (var collection = searcher.Get())
-                {
-                    foreach (ManagementObject part in collection)
-                    {
-                        using (part)
-                        {
-                            var ch = part["DriveLetter"] switch
-                            {
-                                char c => c,
-                                ushort u => (char)u,
-                                byte b => (char)b,
-                                _ => '\0',
-                            };
-                            if (ch >= 'A' && ch <= 'Z')
-                            {
-                                return $"{ch}:\\";
-                            }
-                        }
-                    }
-                }
-                Thread.Sleep(150);
-            }
-        }
-        catch (ManagementException)
-        {
-        }
-        catch (UnauthorizedAccessException)
-        {
-        }
-        return null;
+        var letter = Win32Storage.WaitForDriveLetter(diskNumber, deadline, pollMs: 150);
+        return letter is null ? null : $"{letter.Value}:\\";
     }
 
     /// <summary>
