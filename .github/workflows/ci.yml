@@ -13,10 +13,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup .NET (pinned via global.json)
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
 
@@ -39,7 +39,7 @@ jobs:
         run: dotnet publish src/IsoToUsb/IsoToUsb.csproj -c Release -p:PublishProfile=win-x64
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: IsoToUsb-win-x64
           path: src/IsoToUsb/bin/Release/net10.0-windows10.0.26100.0/win-x64/publish/
